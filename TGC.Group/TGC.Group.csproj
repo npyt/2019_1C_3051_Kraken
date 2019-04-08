@@ -82,6 +82,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Camera\ThirdPersonCamera.cs" />
     <Compile Include="Form\GameForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -113,6 +114,7 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Game.Designer.cs</LastGenOutput>
     </None>
+    <None Include="Media\Ciudad\Ciudad.max" />
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -165,8 +167,25 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Media\cajaMadera4.jpg" />
+    <Content Include="Media\Ciudad\Ciudad-TgcScene.xml" />
+    <Content Include="Media\Ciudad\preview.jpg" />
+    <Content Include="Media\Ciudad\Textures\Door Rusty.jpg" />
+    <Content Include="Media\Ciudad\Textures\Floor.jpg" />
+    <Content Include="Media\Ciudad\Textures\GlassPattern.jpg" />
+    <Content Include="Media\Ciudad\Textures\Grass.jpg" />
+    <Content Include="Media\Ciudad\Textures\Grey Bricks.jpg" />
+    <Content Include="Media\Ciudad\Textures\Marble.jpg" />
+    <Content Include="Media\Ciudad\Textures\Metal Pattern.jpg" />
+    <Content Include="Media\Ciudad\Textures\Path.jpg" />
+    <Content Include="Media\Ciudad\Textures\Red Bricks.jpg" />
+    <Content Include="Media\Ciudad\Textures\Road Union.jpg" />
+    <Content Include="Media\Ciudad\Textures\Road.jpg" />
+    <Content Include="Media\Ciudad\Textures\Traffic Light.jpg" />
+    <Content Include="Media\Ciudad\Textures\White Wall.JPG" />
+    <Content Include="Media\Ciudad\Textures\Yellow Painted.jpg" />
     <Content Include="Media\LogoTGC-TgcScene.xml" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PreBuildEvent>

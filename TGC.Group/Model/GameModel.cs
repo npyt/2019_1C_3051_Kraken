@@ -8,6 +8,8 @@ using TGC.Core.Mathematica;
 using TGC.Core.SceneLoader;
 using TGC.Core.Textures;
 using TGC.Group.Camara;
+using TGC.Core.Terrain;
+using TGC.Core.Collision;
 
 namespace TGC.Group.Model
 {
@@ -32,160 +34,169 @@ namespace TGC.Group.Model
             Description = Game.Default.Description;
         }
 
-        //Caja que se muestra en el ejemplo.
-        private TGCBox Box { get; set; }
+        // Nave principal
+        private TGCBox Ship { get; set; }
 
-      
-        //Mesh de TgcLogo.
-        private TgcMesh Mesh { get; set; }
+        //PowerBoxes
+        private TGCBox ShortPowerBox { get; set; }
 
-        //Boleano para ver si dibujamos el boundingbox
+        // Nave test
+        private TgcMesh shipMesh { get; set; }
+
+        // Boleano para ver si dibujamos el boundingbox
         private bool BoundingBox { get; set; }
 
-        private TgcScene scene;
-        private const float MOVEMENT_SPEED = 400f;
 
+        // SkyBox
+        private TgcSkyBox skyBox;
+
+        // Camara en tercera persona
         private TgcThirdPersonCamera camaraInterna;
 
-        /// <summary>
-        ///     Se llama una sola vez, al principio cuando se ejecuta el ejemplo.
-        ///     Escribir aquí todo el código de inicialización: cargar modelos, texturas, estructuras de optimización, todo
-        ///     procesamiento que podemos pre calcular para nuestro juego.
-        ///     Borrar el codigo ejemplo no utilizado.
-        /// </summary>
-        /// 
+        // Variables varias
+        private const float MOVEMENT_SPEED = 200f;
+        
 
         public override void Init()
         {
+            // Inicialización del skybox
+            skyBox = new TgcSkyBox();
+            skyBox.Center = TGCVector3.Empty;
+            skyBox.Size = new TGCVector3(20000, 20000, 20000);
+            //skyBox.Color = Color.Black; // Test de skyblock con color fijo
+            skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Up, MediaDir + "SkyBox\\purplenebula_up.jpg");
+            skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Down, MediaDir + "SkyBox\\purplenebula_dn.jpg");
+            skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Left, MediaDir + "SkyBox\\purplenebula_lf.jpg");
+            skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Right, MediaDir + "SkyBox\\purplenebula_rt.jpg");
+            skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Front, MediaDir + "SkyBox\\purplenebula_bk.jpg");
+            skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Back, MediaDir + "SkyBox\\purplenebula_ft.jpg");
+            skyBox.SkyEpsilon = 25f;
+            skyBox.Init();
+
             //Device de DirectX para crear primitivas.
             var d3dDevice = D3DDevice.Instance.Device;
 
             //Textura de la carperta Media. Game.Default es un archivo de configuracion (Game.settings) util para poner cosas.
             //Pueden abrir el Game.settings que se ubica dentro de nuestro proyecto para configurar.
             var pathTexturaCaja = MediaDir + Game.Default.TexturaCaja;
+            
 
-            // TEST MAPA TUTORIAL 3
-            var loader = new TgcSceneLoader();
-            scene = loader.loadSceneFromFile(MediaDir + "Ciudad\\Ciudad-TgcScene.xml");
-
-
-            //Cargamos una textura, tener en cuenta que cargar una textura significa crear una copia en memoria.
-            //Es importante cargar texturas en Init, si se hace en el render loop podemos tener grandes problemas si instanciamos muchas.
+            ///
+            /// Caja de prueba para la nave
+            /// 
+           
             var texture = TgcTexture.createTexture(pathTexturaCaja);
+            var size = new TGCVector3(5, 5, 10);
+            Ship = TGCBox.fromSize(size, texture);
+            Ship.Position = new TGCVector3(0, 10, 2000);
+            Ship.Transform = TGCMatrix.Identity;
 
-            //Creamos una caja 3D ubicada de dimensiones (5, 10, 5) y la textura como color.
-            var size = new TGCVector3(5, 10, 5);
-            //Construimos una caja según los parámetros, por defecto la misma se crea con centro en el origen y se recomienda así para facilitar las transformaciones.
-            Box = TGCBox.fromSize(size, texture);
-            //Posición donde quiero que este la caja, es común que se utilicen estructuras internas para las transformaciones.
-            //Entonces actualizamos la posición lógica, luego podemos utilizar esto en render para posicionar donde corresponda con transformaciones.
-            Box.Position = new TGCVector3(0, 10, 0);
-            Box.Transform = TGCMatrix.Identity;
+            ///
+            /// Caja de prueba para el poder corto
+            /// 
 
-            //Cargo el unico mesh que tiene la escena.
-            Mesh = new TgcSceneLoader().loadSceneFromFile(MediaDir + "LogoTGC-TgcScene.xml").Meshes[0];
-            //Defino una escala en el modelo logico del mesh que es muy grande.
-            Mesh.Scale = new TGCVector3(0.5f, 0.5f, 0.5f);
+            var sizePowerShort = new TGCVector3(10, 2, 10);
+            ShortPowerBox = TGCBox.fromSize(sizePowerShort, texture);
+            ShortPowerBox.Position = new TGCVector3(0, 10, 2050);
+            ShortPowerBox.Transform = TGCMatrix.Identity;
 
-            //Suelen utilizarse objetos que manejan el comportamiento de la camara.
-            //Lo que en realidad necesitamos gráficamente es una matriz de View.
-            //El framework maneja una cámara estática, pero debe ser inicializada.
-            //Posición de la camara.
-        
-            //var cameraPosition = new TGCVector3(0, 0, 200);
-            //Quiero que la camara mire hacia el origen (0,0,0).
-            //var lookAt = Box.Position;
-            //Configuro donde esta la posicion de la camara y hacia donde mira.
-            // Camara.SetCamera(cameraPosition, lookAt);
-            //Internamente el framework construye la matriz de view con estos dos vectores.
-            //Luego en nuestro juego tendremos que crear una cámara que cambie la matriz de view con variables como movimientos o animaciones de escenas.
+            ///
+            /// Mesh de prueba nave desde 3ds
+            /// 
 
-            camaraInterna = new TgcThirdPersonCamera(Box.Position, 40, 120);
+            var loader = new TgcSceneLoader();
+            shipMesh = loader.loadSceneFromFile(MediaDir + "Test\\test-TgcScene.xml").Meshes[0];
+            shipMesh.Move(0, 0, 2000);
+            //mainMesh.RotateY(180);
+
+
+            // Cámara en tercera persona
+            camaraInterna = new TgcThirdPersonCamera(Ship.Position, 10, 35);
             Camara = camaraInterna;
         }
 
-        /// <summary>
-        ///     Se llama en cada frame.
-        ///     Se debe escribir toda la lógica de computo del modelo, así como también verificar entradas del usuario y reacciones
-        ///     ante ellas.
-        /// </summary>
         public override void Update()
         {
             PreUpdate();
 
+            // Para que no surja el artifact del skybox
+            D3DDevice.Instance.Device.Transform.Projection = TGCMatrix.PerspectiveFovLH(D3DDevice.Instance.FieldOfView, D3DDevice.Instance.AspectRatio,
+                    D3DDevice.Instance.ZNearPlaneDistance, D3DDevice.Instance.ZFarPlaneDistance * 2f).ToMatrix();
+
+            // Detectar colisión entre la nave (Ship) y un poder corto (ShortPowerBox)
+            if (TgcCollisionUtils.testAABBAABB(Ship.BoundingBox, ShortPowerBox.BoundingBox))
+            {
+                ShortPowerBox.Color = Color.Yellow;
+                ShortPowerBox.updateValues();
+                if (Input.keyDown(Key.Space))
+                {
+                    ShortPowerBox.Color = Color.Red;
+                    ShortPowerBox.updateValues();
+                }
+            }
+            else
+            {
+                ShortPowerBox.Color = Color.White;
+                ShortPowerBox.updateValues();
+            }
+
+            // Movimiento de la nave (Ship)
             var movement = TGCVector3.Empty;
-            movement.Z = -1;
-            var originalPos = Box.Position;
-
-
-            //Multiplicar movimiento por velocidad y elapsedTime
+            //movement.Z = -1; // Descomentar para movimiento constante
+            var originalPos = Ship.Position;
             movement *= MOVEMENT_SPEED * ElapsedTime;
-            Box.Move(movement);
+            Ship.Move(movement);
 
-            //Capturar Input teclado
+            // Capturar Input teclado para activar o no el bounding box
             if (Input.keyPressed(Key.F))
             {
                 BoundingBox = !BoundingBox;
             }
 
-            //Capturar Input Mouse
-            if (Input.buttonUp(TgcD3dInput.MouseButtons.BUTTON_LEFT))
+            // Movernos adelante y atras, sobre el eje Z.
+            if (Input.keyDown(Key.Up) || Input.keyDown(Key.W))
             {
-                //Como ejemplo podemos hacer un movimiento simple de la cámara.
-                //En este caso le sumamos un valor en Y
-                Camara.SetCamera(Camara.Position + new TGCVector3(0, 10f, 0), Camara.LookAt);
-                //Ver ejemplos de cámara para otras operaciones posibles.
-
-                //Si superamos cierto Y volvemos a la posición original.
-                if (Camara.Position.Y > 300f)
-                {
-                    Camara.SetCamera(new TGCVector3(Camara.Position.X, 0f, Camara.Position.Z), Camara.LookAt);
-                }
+                movement.Z = -1;
+            }
+            else if (Input.keyDown(Key.Down) || Input.keyDown(Key.S))
+            {
+                movement.Z = 1;
             }
 
+            // Comentar si no se mueve por teclado
+            movement *= MOVEMENT_SPEED * ElapsedTime;
+            Ship.Move(movement);
 
             PostUpdate();
         }
-
-        /// <summary>
-        ///     Se llama cada vez que hay que refrescar la pantalla.
-        ///     Escribir aquí todo el código referido al renderizado.
-        ///     Borrar todo lo que no haga falta.
-        /// </summary>
+        
         public override void Render()
         {
             //Inicio el render de la escena, para ejemplos simples. Cuando tenemos postprocesado o shaders es mejor realizar las operaciones según nuestra conveniencia.
             PreRender();
 
-            //Dibuja un texto por pantalla
-            DrawText.drawText("Box Position: \n" + Box.Position, 0, 40, Color.Red);
+            // Especificaciones en pantalla: posición de la nave y de la cámara
+            DrawText.drawText("Box Position: \n" + Ship.Position, 0, 40, Color.Red);
             DrawText.drawText("Camera Position: \n" + Camara.Position, 100, 40, Color.Red);
 
-            scene.RenderAll();
-
-            //Siempre antes de renderizar el modelo necesitamos actualizar la matriz de transformacion.
-            //Debemos recordar el orden en cual debemos multiplicar las matrices, en caso de tener modelos jerárquicos, tenemos control total.
-            Box.Transform = TGCMatrix.Scaling(Box.Scale) * TGCMatrix.RotationYawPitchRoll(Box.Rotation.Y, Box.Rotation.X, Box.Rotation.Z) * TGCMatrix.Translation(Box.Position);
-            //A modo ejemplo realizamos toda las multiplicaciones, pero aquí solo nos hacia falta la traslación.
-            //Finalmente invocamos al render de la caja
-            Box.Render();
-
-            //Cuando tenemos modelos mesh podemos utilizar un método que hace la matriz de transformación estándar.
-            //Es útil cuando tenemos transformaciones simples, pero OJO cuando tenemos transformaciones jerárquicas o complicadas.
-            Mesh.UpdateMeshTransform();
-            //Render del mesh
-            Mesh.Render();
+            // Renders
+            shipMesh.Render();
+            skyBox.Render();
+            Ship.Transform = TGCMatrix.Scaling(Ship.Scale) * TGCMatrix.RotationYawPitchRoll(Ship.Rotation.Y, Ship.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(Ship.Position);
+            Ship.Render();
+            ShortPowerBox.Transform = TGCMatrix.Scaling(ShortPowerBox.Scale) * TGCMatrix.RotationYawPitchRoll(ShortPowerBox.Rotation.Y, ShortPowerBox.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(ShortPowerBox.Position);
+            ShortPowerBox.Render();
+            
 
             //Render de BoundingBox, muy útil para debug de colisiones.
             if (BoundingBox)
             {
-                Box.BoundingBox.Render();
-                Mesh.BoundingBox.Render();
+                Ship.BoundingBox.Render();
+                ShortPowerBox.BoundingBox.Render();
             }
 
-            camaraInterna.Target = Box.Position;
+            camaraInterna.Target = Ship.Position;
 
-            //Finaliza el render y presenta en pantalla, al igual que el preRender se debe para casos puntuales es mejor utilizar a mano las operaciones de EndScene y PresentScene
             PostRender();
         }
 
@@ -196,10 +207,8 @@ namespace TGC.Group.Model
         /// </summary>
         public override void Dispose()
         {
-            //Dispose de la caja.
-            Box.Dispose();
-            //Dispose del mesh.
-            Mesh.Dispose();
+            Ship.Dispose();
+            ShortPowerBox.Dispose();
         }
     }
 }

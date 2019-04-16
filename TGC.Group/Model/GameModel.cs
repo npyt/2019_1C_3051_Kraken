@@ -1,5 +1,6 @@
 using Microsoft.DirectX.DirectInput;
 using System.Drawing;
+using System;
 using TGC.Core.Direct3D;
 using TGC.Core.Example;
 using TGC.Core.Geometry;
@@ -54,8 +55,9 @@ namespace TGC.Group.Model
         private TgcThirdPersonCamera camaraInterna;
 
         // Variables varias
-        private const float MOVEMENT_SPEED = 200f;
+        private const float MOVEMENT_SPEED = 2f;
         
+        TGCVector3 target;
 
         public override void Init()
         {
@@ -97,7 +99,7 @@ namespace TGC.Group.Model
 
             var sizePowerShort = new TGCVector3(10, 2, 10);
             ShortPowerBox = TGCBox.fromSize(sizePowerShort, texture);
-            ShortPowerBox.Position = new TGCVector3(0, 10, 2050);
+            ShortPowerBox.Position = new TGCVector3(60, 10, 1950);
             ShortPowerBox.Transform = TGCMatrix.Identity;
 
             ///
@@ -113,6 +115,9 @@ namespace TGC.Group.Model
             // Cámara en tercera persona
             camaraInterna = new TgcThirdPersonCamera(Ship.Position, 10, 35);
             Camara = camaraInterna;
+
+
+            target = ShortPowerBox.Position;
         }
 
         public override void Update()
@@ -142,10 +147,7 @@ namespace TGC.Group.Model
 
             // Movimiento de la nave (Ship)
             var movement = TGCVector3.Empty;
-            //movement.Z = -1; // Descomentar para movimiento constante
             var originalPos = Ship.Position;
-            movement *= MOVEMENT_SPEED * ElapsedTime;
-            Ship.Move(movement);
 
             // Capturar Input teclado para activar o no el bounding box
             if (Input.keyPressed(Key.F))
@@ -164,20 +166,38 @@ namespace TGC.Group.Model
             }
 
             // Comentar si no se mueve por teclado
-            movement *= MOVEMENT_SPEED * ElapsedTime;
+            movement = target;
+            movement.Subtract(originalPos);
+
+            if(movement.Length() < 0.3f)
+            {
+                findNextTarget();
+                movement = target;
+                movement.Subtract(originalPos);
+            }
+
+            movement.Normalize();
+            movement.Multiply(MOVEMENT_SPEED);
             Ship.Move(movement);
 
             PostUpdate();
         }
-        
+
+        public void findNextTarget()
+        {
+            //target = blablabla
+        }
+
         public override void Render()
         {
             //Inicio el render de la escena, para ejemplos simples. Cuando tenemos postprocesado o shaders es mejor realizar las operaciones según nuestra conveniencia.
             PreRender();
 
             // Especificaciones en pantalla: posición de la nave y de la cámara
-            DrawText.drawText("Box Position: \n" + Ship.Position, 0, 40, Color.Red);
+            DrawText.drawText("Box Position: \n" + Ship.Position, 840, 40, Color.Red);
+            DrawText.drawText("Box2 Position: \n " + ShortPowerBox.Position, 940, 40, Color.Red);
             DrawText.drawText("Camera Position: \n" + Camara.Position, 100, 40, Color.Red);
+            
 
             // Renders
             shipMesh.Render();

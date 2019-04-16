@@ -11,6 +11,7 @@ using TGC.Core.Textures;
 using TGC.Group.Camara;
 using TGC.Core.Terrain;
 using TGC.Core.Collision;
+using System.Collections.Generic;
 
 namespace TGC.Group.Model
 {
@@ -38,6 +39,9 @@ namespace TGC.Group.Model
         // Nave principal
         private TGCBox Ship { get; set; }
 
+        // Track01
+        private TgcMesh track01 { get; set; }
+
         //PowerBoxes
         private TGCBox ShortPowerBox { get; set; }
 
@@ -55,9 +59,21 @@ namespace TGC.Group.Model
         private TgcThirdPersonCamera camaraInterna;
 
         // Variables varias
-        private const float MOVEMENT_SPEED = 2f;
+        private const float MOVEMENT_SPEED = 0.25f;
+        private const float VERTEX_MIN_DISTANCE = 0.3f;
         
         TGCVector3 target;
+        private List<TGCVector3> vertex_pool;
+
+        public void addVertexCollection(TGCVector3[] vertex_collection, TGCVector3 offset)
+        {
+            for(int i=0; i<vertex_collection.Length; i++)
+            {
+                TGCVector3 v = vertex_collection[i];
+                v.Add(offset);
+                vertex_pool.Add(v);
+            }
+        }
 
         public override void Init()
         {
@@ -75,6 +91,8 @@ namespace TGC.Group.Model
             skyBox.SkyEpsilon = 25f;
             skyBox.Init();
 
+            vertex_pool = new List<TGCVector3>();
+
             //Device de DirectX para crear primitivas.
             var d3dDevice = D3DDevice.Instance.Device;
 
@@ -90,26 +108,30 @@ namespace TGC.Group.Model
             var texture = TgcTexture.createTexture(pathTexturaCaja);
             var size = new TGCVector3(5, 5, 10);
             Ship = TGCBox.fromSize(size, texture);
-            Ship.Position = new TGCVector3(0, 10, 2000);
+            Ship.Position = new TGCVector3(0, 0, -20);
             Ship.Transform = TGCMatrix.Identity;
 
             ///
             /// Caja de prueba para el poder corto
             /// 
 
+            
             var sizePowerShort = new TGCVector3(10, 2, 10);
             ShortPowerBox = TGCBox.fromSize(sizePowerShort, texture);
-            ShortPowerBox.Position = new TGCVector3(60, 10, 1950);
+            ShortPowerBox.Position = new TGCVector3(0, 0, 0);
             ShortPowerBox.Transform = TGCMatrix.Identity;
-
+            
             ///
             /// Mesh de prueba nave desde 3ds
             /// 
 
             var loader = new TgcSceneLoader();
-            shipMesh = loader.loadSceneFromFile(MediaDir + "Test\\test-TgcScene.xml").Meshes[0];
-            shipMesh.Move(0, 0, 2000);
+            shipMesh = loader.loadSceneFromFile(MediaDir + "Test\\test2-TgcScene.xml").Meshes[0];
+            shipMesh.Move(0, 0, 0);
             //mainMesh.RotateY(180);
+
+            track01 = loader.loadSceneFromFile(MediaDir + "Test\\track01-TgcScene.xml").Meshes[0];
+            track01.Move(0, 0, 0);
 
 
             // Cámara en tercera persona
@@ -117,7 +139,10 @@ namespace TGC.Group.Model
             Camara = camaraInterna;
 
 
-            target = ShortPowerBox.Position;
+            target = Ship.Position;
+            addVertexCollection(track01.getVertexPositions(), new TGCVector3(0, 0, 0));
+
+            findNextTarget();
         }
 
         public override void Update()
@@ -146,6 +171,7 @@ namespace TGC.Group.Model
             }
 
             // Movimiento de la nave (Ship)
+
             var movement = TGCVector3.Empty;
             var originalPos = Ship.Position;
 
@@ -169,23 +195,58 @@ namespace TGC.Group.Model
             movement = target;
             movement.Subtract(originalPos);
 
-            if(movement.Length() < 0.3f)
+            if(movement.Length() < MOVEMENT_SPEED)
             {
-                findNextTarget();
                 movement = target;
                 movement.Subtract(originalPos);
+            } else
+            {
+                movement.Normalize();
+                movement.Multiply(MOVEMENT_SPEED);
             }
 
-            movement.Normalize();
-            movement.Multiply(MOVEMENT_SPEED);
             Ship.Move(movement);
+
+            if(movement.Length() < MOVEMENT_SPEED / 2)
+            {
+                findNextTarget();
+            }
 
             PostUpdate();
         }
 
         public void findNextTarget()
         {
-            //target = blablabla
+            TGCVector3 current_target = target;
+            vertex_pool.Remove(target);
+
+            float distance = -1f;
+            TGCVector3 new_target = new TGCVector3();
+
+            if(vertex_pool.Count > 0)
+            {
+                for (int i = 0; i < vertex_pool.Count; i++)
+                {
+                    TGCVector3 this_vertex = vertex_pool[i];
+                    this_vertex.Subtract(current_target);
+                    float this_distance = this_vertex.Length();
+
+                    if (distance < 0)
+                    {
+                        distance = this_distance;
+                        new_target = vertex_pool[i];
+                    } else if (this_distance < distance)
+                    {
+                        distance = this_distance;
+                        new_target = vertex_pool[i];
+                    }
+                }
+            } else
+            {
+                new_target = current_target;
+                addVertexCollection(track01.getVertexPositions(), new TGCVector3(0, 0, 0));
+            }
+            target = new_target;
         }
 
         public override void Render()
@@ -200,12 +261,12 @@ namespace TGC.Group.Model
             
 
             // Renders
-            shipMesh.Render();
             skyBox.Render();
             Ship.Transform = TGCMatrix.Scaling(Ship.Scale) * TGCMatrix.RotationYawPitchRoll(Ship.Rotation.Y, Ship.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(Ship.Position);
             Ship.Render();
+            track01.Render();
             ShortPowerBox.Transform = TGCMatrix.Scaling(ShortPowerBox.Scale) * TGCMatrix.RotationYawPitchRoll(ShortPowerBox.Rotation.Y, ShortPowerBox.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(ShortPowerBox.Position);
-            ShortPowerBox.Render();
+            //ShortPowerBox.Render();
             
 
             //Render de BoundingBox, muy útil para debug de colisiones.

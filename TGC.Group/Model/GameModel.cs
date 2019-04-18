@@ -59,35 +59,19 @@ namespace TGC.Group.Model
         private TgcThirdPersonCamera camaraInterna;
 
         // Variables varias
-        private const float MOVEMENT_SPEED = 0.25f;
+        private const float MOVEMENT_SPEED = 12f;
         private const float VERTEX_MIN_DISTANCE = 0.3f;
-        
+
         TGCVector3 target;
         private List<TGCVector3> vertex_pool;
+        private List<TGCVector3> permanent_pool;
 
-        public void addVertexCollection(TGCVector3[] vertex_collection, TGCVector3 offset)
-        {
-            for(int i=0; i<vertex_collection.Length; i++)
-            {
-                Boolean present = false;
-                TGCVector3 v = vertex_collection[i];
-                v.Add(offset);
+        float sum_elapsed = 0f;
+        int counter_elapsed = 0;
+        float medium_elapsed = 0f;
 
-                for(int j=0; j<vertex_pool.Count; j++)
-                {
-                    TGCVector3 comparator = vertex_pool[j];
-                    if(comparator.X == v.X && comparator.Y == v.Y && comparator.Z == v.Z)
-                    {
-                        present = true;
-                    }
-                }
+        private TGCBox test_hit { get; set; }
 
-                if(!present)
-                {
-                    vertex_pool.Add(v);
-                }
-            }
-        }
 
         public override void Init()
         {
@@ -106,6 +90,7 @@ namespace TGC.Group.Model
             skyBox.Init();
 
             vertex_pool = new List<TGCVector3>();
+            permanent_pool = new List<TGCVector3>();
 
             //Device de DirectX para crear primitivas.
             var d3dDevice = D3DDevice.Instance.Device;
@@ -113,28 +98,32 @@ namespace TGC.Group.Model
             //Textura de la carperta Media. Game.Default es un archivo de configuracion (Game.settings) util para poner cosas.
             //Pueden abrir el Game.settings que se ubica dentro de nuestro proyecto para configurar.
             var pathTexturaCaja = MediaDir + Game.Default.TexturaCaja;
-            
+
 
             ///
             /// Caja de prueba para la nave
             /// 
-           
+
             var texture = TgcTexture.createTexture(pathTexturaCaja);
             var size = new TGCVector3(5, 5, 10);
             Ship = TGCBox.fromSize(size, texture);
             Ship.Position = new TGCVector3(0, 0, -20);
             Ship.Transform = TGCMatrix.Identity;
+            
+            test_hit = TGCBox.fromSize(new TGCVector3(1, 1, 1), texture);
+            test_hit.Position = new TGCVector3(0, 0, 0);
+            test_hit.Transform = TGCMatrix.Identity;
 
             ///
             /// Caja de prueba para el poder corto
             /// 
 
-            
+
             var sizePowerShort = new TGCVector3(10, 2, 10);
             ShortPowerBox = TGCBox.fromSize(sizePowerShort, texture);
             ShortPowerBox.Position = new TGCVector3(0, 0, 0);
             ShortPowerBox.Transform = TGCMatrix.Identity;
-            
+
             ///
             /// Mesh de prueba nave desde 3ds
             /// 
@@ -144,24 +133,33 @@ namespace TGC.Group.Model
             shipMesh.Move(0, 0, 0);
             //mainMesh.RotateY(180);
 
-            track01 = loader.loadSceneFromFile(MediaDir + "Test\\path_new_concept-TgcScene.xml").Meshes[0];
+            track01 = loader.loadSceneFromFile(MediaDir + "Test\\track01-TgcScene.xml").Meshes[0];
             track01.Move(0, 0, 0);
 
 
             // Cámara en tercera persona
-            camaraInterna = new TgcThirdPersonCamera(Ship.Position, 10, 35);
+            camaraInterna = new TgcThirdPersonCamera(Ship.Position, 10, -35);
             Camara = camaraInterna;
 
 
             target = Ship.Position;
             addVertexCollection(track01.getVertexPositions(), new TGCVector3(0, 0, 0));
 
-            findNextTarget();
+            target = findNextTarget(vertex_pool);
         }
 
         public override void Update()
         {
             PreUpdate();
+
+            counter_elapsed++;
+            sum_elapsed += ElapsedTime;
+            medium_elapsed = sum_elapsed / counter_elapsed;
+            if (counter_elapsed >= float.MaxValue / 2 | sum_elapsed >= float.MaxValue)
+            {
+                sum_elapsed = 0f;
+                counter_elapsed = 0;
+            }
 
             // Para que no surja el artifact del skybox
             D3DDevice.Instance.Device.Transform.Projection = TGCMatrix.PerspectiveFovLH(D3DDevice.Instance.FieldOfView, D3DDevice.Instance.AspectRatio,
@@ -209,57 +207,27 @@ namespace TGC.Group.Model
             movement = target;
             movement.Subtract(originalPos);
 
-            movement.Normalize();
-            movement.Multiply(MOVEMENT_SPEED);
+            if (movement.Length() < (MOVEMENT_SPEED * ElapsedTime))
+            {
+                movement = target;
+                movement.Subtract(originalPos);
+            }
+            else
+            {
+                movement.Normalize();
+                movement.Multiply(MOVEMENT_SPEED * ElapsedTime);
+            }
+
+            //test_hit.Position = getPositionAtMiliseconds(1000);
 
             Ship.Move(movement);
 
-            TGCVector3 distance = target;
-            distance.Subtract(Ship.Position);
-
-            if(distance.Length() >= MOVEMENT_SPEED)
+            if (movement.Length() < (MOVEMENT_SPEED * ElapsedTime) / 2)
             {
-                findNextTarget();
-            } else
-            {
-                target = Ship.Position;
+                target = findNextTarget(vertex_pool);
             }
 
             PostUpdate();
-        }
-
-        public void findNextTarget()
-        {
-            TGCVector3 current_target = target;
-
-            float distance = -1f;
-            TGCVector3 new_target = new TGCVector3();
-
-            if(vertex_pool.Count > 0)
-            {
-                for (int i = 0; i < vertex_pool.Count; i++)
-                {
-                    TGCVector3 this_vertex = vertex_pool[i];
-                    this_vertex.Subtract(current_target);
-                    float this_distance = this_vertex.Length();
-
-                    if (distance < 0)
-                    {
-                        distance = this_distance;
-                        new_target = vertex_pool[i];
-                    } else if (this_distance < distance)
-                    {
-                        distance = this_distance;
-                        new_target = vertex_pool[i];
-                    }
-                }
-            } else
-            {
-                new_target = current_target;
-            }
-
-            target = new_target;
-            vertex_pool.Remove(target);
         }
 
         public override void Render()
@@ -271,7 +239,9 @@ namespace TGC.Group.Model
             DrawText.drawText("Box Position: \n" + Ship.Position, 840, 40, Color.Red);
             DrawText.drawText("Box2 Position: \n " + ShortPowerBox.Position, 940, 40, Color.Red);
             DrawText.drawText("Camera Position: \n" + Camara.Position, 100, 40, Color.Red);
-            
+            DrawText.drawText("Medium Elapsed: \n" + medium_elapsed, 100, 150, Color.Red);
+            DrawText.drawText("Elapsed: \n" + ElapsedTime, 100, 180, Color.Red);
+
 
             // Renders
             skyBox.Render();
@@ -280,7 +250,10 @@ namespace TGC.Group.Model
             track01.Render();
             ShortPowerBox.Transform = TGCMatrix.Scaling(ShortPowerBox.Scale) * TGCMatrix.RotationYawPitchRoll(ShortPowerBox.Rotation.Y, ShortPowerBox.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(ShortPowerBox.Position);
             //ShortPowerBox.Render();
-            
+
+            test_hit.Transform = TGCMatrix.Scaling(test_hit.Scale) * TGCMatrix.RotationYawPitchRoll(test_hit.Rotation.Y, test_hit.Rotation.X, test_hit.Rotation.Z) * TGCMatrix.Translation(test_hit.Position);
+            test_hit.Render();
+
 
             //Render de BoundingBox, muy útil para debug de colisiones.
             if (BoundingBox)
@@ -292,6 +265,85 @@ namespace TGC.Group.Model
             camaraInterna.Target = Ship.Position;
 
             PostRender();
+        }
+
+        public void addVertexCollection(TGCVector3[] vertex_collection, TGCVector3 offset)
+        {
+            for (int i = 0; i < vertex_collection.Length; i++)
+            {
+                Boolean present = false;
+                TGCVector3 v = vertex_collection[i];
+                v.Add(offset);
+
+                for (int j = 0; j < vertex_pool.Count; j++)
+                {
+                    TGCVector3 comparator = vertex_pool[j];
+                    if (comparator.X == v.X && comparator.Y == v.Y && comparator.Z == v.Z)
+                    {
+                        present = true;
+                    }
+                }
+
+                if (!present)
+                {
+                    vertex_pool.Add(v);
+                    permanent_pool.Add(v);
+                }
+            }
+        }
+
+        public TGCVector3 findNextTarget(List<TGCVector3> pool)
+        {
+            TGCVector3 current_target = target;
+            pool.Remove(target);
+
+            float distance = -1f;
+            TGCVector3 new_target = new TGCVector3();
+
+            if (pool.Count > 0)
+            {
+                for (int i = 0; i < pool.Count; i++)
+                {
+                    TGCVector3 this_vertex = pool[i];
+                    this_vertex.Subtract(current_target);
+                    float this_distance = this_vertex.Length();
+
+                    if (distance < 0)
+                    {
+                        distance = this_distance;
+                        new_target = pool[i];
+                    }
+                    else if (this_distance < distance)
+                    {
+                        distance = this_distance;
+                        new_target = pool[i];
+                    }
+                }
+            }
+            else
+            {
+                new_target = current_target;
+                addVertexCollection(track01.getVertexPositions(), new TGCVector3(0, 0, 0));
+            }
+            target = new_target;
+
+            return target;
+        }
+
+        public TGCVector3 getPositionAtMiliseconds(float miliseconds)
+        {
+            if (medium_elapsed == 0)
+            {
+                return TGCVector3.Empty;
+            }
+
+            List<TGCVector3> mypool = new List<TGCVector3>(permanent_pool);
+            TGCVector3 originalTarget = target;
+            TGCVector3 simulated_ship_position = TGCVector3.Empty;
+
+
+            target = originalTarget;
+            return simulated_ship_position;
         }
 
         /// <summary>

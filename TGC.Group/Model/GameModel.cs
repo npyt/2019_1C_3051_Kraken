@@ -69,9 +69,23 @@ namespace TGC.Group.Model
         {
             for(int i=0; i<vertex_collection.Length; i++)
             {
+                Boolean present = false;
                 TGCVector3 v = vertex_collection[i];
                 v.Add(offset);
-                vertex_pool.Add(v);
+
+                for(int j=0; j<vertex_pool.Count; j++)
+                {
+                    TGCVector3 comparator = vertex_pool[j];
+                    if(comparator.X == v.X && comparator.Y == v.Y && comparator.Z == v.Z)
+                    {
+                        present = true;
+                    }
+                }
+
+                if(!present)
+                {
+                    vertex_pool.Add(v);
+                }
             }
         }
 
@@ -130,7 +144,7 @@ namespace TGC.Group.Model
             shipMesh.Move(0, 0, 0);
             //mainMesh.RotateY(180);
 
-            track01 = loader.loadSceneFromFile(MediaDir + "Test\\track01-TgcScene.xml").Meshes[0];
+            track01 = loader.loadSceneFromFile(MediaDir + "Test\\path_new_concept-TgcScene.xml").Meshes[0];
             track01.Move(0, 0, 0);
 
 

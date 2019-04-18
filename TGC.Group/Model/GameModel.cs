@@ -209,21 +209,20 @@ namespace TGC.Group.Model
             movement = target;
             movement.Subtract(originalPos);
 
-            if(movement.Length() < MOVEMENT_SPEED)
-            {
-                movement = target;
-                movement.Subtract(originalPos);
-            } else
-            {
-                movement.Normalize();
-                movement.Multiply(MOVEMENT_SPEED);
-            }
+            movement.Normalize();
+            movement.Multiply(MOVEMENT_SPEED);
 
             Ship.Move(movement);
 
-            if(movement.Length() < MOVEMENT_SPEED / 2)
+            TGCVector3 distance = target;
+            distance.Subtract(Ship.Position);
+
+            if(distance.Length() >= MOVEMENT_SPEED)
             {
                 findNextTarget();
+            } else
+            {
+                target = Ship.Position;
             }
 
             PostUpdate();
@@ -232,7 +231,6 @@ namespace TGC.Group.Model
         public void findNextTarget()
         {
             TGCVector3 current_target = target;
-            vertex_pool.Remove(target);
 
             float distance = -1f;
             TGCVector3 new_target = new TGCVector3();
@@ -258,9 +256,10 @@ namespace TGC.Group.Model
             } else
             {
                 new_target = current_target;
-                addVertexCollection(track01.getVertexPositions(), new TGCVector3(0, 0, 0));
             }
+
             target = new_target;
+            vertex_pool.Remove(target);
         }
 
         public override void Render()

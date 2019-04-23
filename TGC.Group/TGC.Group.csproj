@@ -82,6 +82,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Camera\RotatonalCamera.cs" />
     <Compile Include="Camera\ThirdPersonCamera.cs" />
     <Compile Include="Form\GameForm.cs">
       <SubType>Form</SubType>

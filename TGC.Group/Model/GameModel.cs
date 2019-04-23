@@ -45,6 +45,9 @@ namespace TGC.Group.Model
         //PowerBoxes
         private TGCBox ShortPowerBox { get; set; }
 
+        //GodBox
+        private TGCBox godBox { get; set; }
+
         private TgcMesh ship_soft { get; set; }
         /*
          * Model Track01
@@ -72,8 +75,14 @@ namespace TGC.Group.Model
          */
         private TgcThirdPersonCamera camaraInterna;
 
+        /*
+        * Camara god
+        */
+        //private TgcRotationalCamera godCamera;
+        private TgcThirdPersonCamera godCamera;
+
         // Variables varias
-        private const float MOVEMENT_SPEED = 12f;
+        private const float MOVEMENT_SPEED = 112f;
         private const float VERTEX_MIN_DISTANCE = 0.3f;
 
         TGCVector3 target;
@@ -83,6 +92,7 @@ namespace TGC.Group.Model
         float sum_elapsed = 0f;
         int counter_elapsed = 0;
         float medium_elapsed = 0f;
+        private float angle = 0;
 
         private TGCBox test_hit { get; set; }
 
@@ -95,7 +105,7 @@ namespace TGC.Group.Model
         
         // SkyBox test
         private TgcSkyBox skyBox;
-            
+
         public override void Init()
         {
             vertex_pool = new List<TGCVector3>();
@@ -106,11 +116,11 @@ namespace TGC.Group.Model
 
             // Textura de la carperta Media.
             var pathTexturaCaja = MediaDir + Game.Default.TexturaCaja;
-            
+
             // Textura para pruebas
             var texture = TgcTexture.createTexture(pathTexturaCaja);
             var size = new TGCVector3(5, 5, 10);
-            
+
             test_hit = TGCBox.fromSize(new TGCVector3(1, 1, 1), texture);
             test_hit.Position = new TGCVector3(0, 0, 0);
             test_hit.Transform = TGCMatrix.Identity;
@@ -120,11 +130,17 @@ namespace TGC.Group.Model
             ShortPowerBox = TGCBox.fromSize(sizePowerShort, texture);
             ShortPowerBox.Position = new TGCVector3(0, 0, 0);
             ShortPowerBox.Transform = TGCMatrix.Identity;
-           
+
+            // Caja god
+            var sizeGodBox = new TGCVector3(10, 2, 10);
+            godBox = TGCBox.fromSize(sizePowerShort, texture);
+            godBox.Position = new TGCVector3(0, 0, 0);
+            godBox.Transform = TGCMatrix.Identity;
+
             // Cargo los meshes
 
             var loader = new TgcSceneLoader();
-            
+
             // Track path
             track01 = loader.loadSceneFromFile(MediaDir + "Test\\ship_path-TgcScene.xml").Meshes[0];
             track01.Move(0, 5, 0);
@@ -154,8 +170,12 @@ namespace TGC.Group.Model
             pSphere4.Move(0, 0, 0);
 
             // Cámara en tercera persona
-            camaraInterna = new TgcThirdPersonCamera(Ship.Position, 10, -35);
-            Camara = camaraInterna;
+            camaraInterna = new TgcThirdPersonCamera(Ship.Position, 60, -135);
+
+            // GOD Camera
+            //godCamera = new TgcRotationalCamera(godBox.Position, godBox.Size.Length() * 6, Input);
+            godCamera = new TgcThirdPersonCamera(godBox.Position, 60, -135);
+            Camara = godCamera;
 
             target = Ship.Position;
             addVertexCollection(track01.getVertexPositions(), new TGCVector3(0, 5, 0));
@@ -166,7 +186,7 @@ namespace TGC.Group.Model
              *Skybox TEST
              */
 
-             /*
+             
             skyBox = new TgcSkyBox();
             skyBox.Center = TGCVector3.Empty;
             skyBox.Size = new TGCVector3(20000, 20000, 20000);
@@ -179,7 +199,7 @@ namespace TGC.Group.Model
             skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Back, MediaDir + "SkyBox\\purplenebula_ft.jpg");
             skyBox.SkyEpsilon = 25f;
             skyBox.Init();
-            */
+            
         }
 
         public override void Update()
@@ -219,6 +239,7 @@ namespace TGC.Group.Model
             // Movimiento de la nave (Ship)
 
             var movement = TGCVector3.Empty;
+            var movementGod = TGCVector3.Empty;
             var originalPos = Ship.Position;
 
             // Capturar Input teclado para activar o no el bounding box
@@ -227,14 +248,47 @@ namespace TGC.Group.Model
                 BoundingBox = !BoundingBox;
             }
 
-            // Movernos adelante y atras, sobre el eje Z.
-            if (Input.keyDown(Key.Up) || Input.keyDown(Key.W))
+            // Change Camera
+            if (Input.keyPressed(Key.Tab))
             {
-                movement.Z = -1;
+                if (Camara.Equals(camaraInterna))
+                {
+                    Camara = godCamera;
+                }
+                else
+                {
+                    Camara = camaraInterna;
+                };
             }
-            else if (Input.keyDown(Key.Down) || Input.keyDown(Key.S))
+
+            // Movernos adelante y atras, sobre el eje Z.
+            if (Camara.Equals(godCamera))
             {
-                movement.Z = 1;
+                if (Input.keyDown(Key.Up) || Input.keyDown(Key.W))
+                {
+                    movementGod.Z = 1;
+                }
+                else if (Input.keyDown(Key.Down) || Input.keyDown(Key.S))
+                {
+                    movementGod.Z = -1;
+                }
+                else if (Input.keyDown(Key.Left) || Input.keyDown(Key.A))
+                {
+                    movementGod.X = -1;
+                }
+                else if (Input.keyDown(Key.Right) || Input.keyDown(Key.D))
+                {
+                    movementGod.X = 1;
+                }
+                else if (Input.keyDown(Key.Space))
+                {
+                    movementGod.Y = 1;
+                }
+                else if (Input.keyDown(Key.C))
+                {
+                    movementGod.Y = -1;
+                }
+
             }
 
             // Comentar si no se mueve por teclado
@@ -250,11 +304,14 @@ namespace TGC.Group.Model
             {
                 movement.Normalize();
                 movement.Multiply(MOVEMENT_SPEED * ElapsedTime);
+                
             }
-
             //test_hit.Position = getPositionAtMiliseconds(1000);
-
+            
+            //Ship.RotateX(movement.Y * movement.Z );
+            //Ship.RotateY(movement.Z * movement.X );
             Ship.Move(movement);
+            godBox.Move(movementGod);
 
             if (movement.Length() < (MOVEMENT_SPEED * ElapsedTime) / 2)
             {
@@ -270,15 +327,15 @@ namespace TGC.Group.Model
             PreRender();
 
             // Especificaciones en pantalla: posición de la nave y de la cámara
-            DrawText.drawText("Box Position: \n" + Ship.Position, 840, 40, Color.Red);
-            DrawText.drawText("Box2 Position: \n " + ShortPowerBox.Position, 940, 40, Color.Red);
-            DrawText.drawText("Camera Position: \n" + Camara.Position, 100, 40, Color.Red);
-            DrawText.drawText("Medium Elapsed: \n" + medium_elapsed, 100, 150, Color.Red);
-            DrawText.drawText("Elapsed: \n" + ElapsedTime, 100, 180, Color.Red);
+            DrawText.drawText("Ship Position: \n" + Ship.Position, 5, 20, Color.Yellow);
+            DrawText.drawText("Power Position: \n " + ShortPowerBox.Position, 5, 90, Color.Yellow);
+            DrawText.drawText("Camera Position: \n" + Camara.Position, 5, 160, Color.Yellow);
+            DrawText.drawText("Medium Elapsed: \n" + medium_elapsed, 145, 20, Color.Yellow);
+            DrawText.drawText("Elapsed: \n" + ElapsedTime, 145, 60, Color.Yellow);
 
 
             // Renders
-            // skyBox.Render();
+            skyBox.Render();
             Ship.Transform = TGCMatrix.Scaling(Ship.Scale) * TGCMatrix.RotationYawPitchRoll(Ship.Rotation.Y, Ship.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(Ship.Position);
             Ship.Render();
             track01.Render();
@@ -286,7 +343,7 @@ namespace TGC.Group.Model
             pSphere1.Render();
             pSphere3.Render();
             pSphere2.Render();
-            pSphere4.Render();
+            //pSphere4.Render();
 
             ShortPowerBox.Transform = TGCMatrix.Scaling(ShortPowerBox.Scale) * TGCMatrix.RotationYawPitchRoll(ShortPowerBox.Rotation.Y, ShortPowerBox.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(ShortPowerBox.Position);
             //ShortPowerBox.Render();
@@ -303,6 +360,7 @@ namespace TGC.Group.Model
             }
 
             camaraInterna.Target = Ship.Position;
+            godCamera.Target = godBox.Position;
 
             PostRender();
         }

@@ -37,25 +37,39 @@ namespace TGC.Group.Model
         }
 
         // Nave principal
-        private TGCBox Ship { get; set; }
+        private TgcMesh Ship { get; set; }
 
-        // Track01
+        // Track01 path
         private TgcMesh track01 { get; set; }
 
         //PowerBoxes
         private TGCBox ShortPowerBox { get; set; }
 
-        // Nave test
-        private TgcMesh shipMesh { get; set; }
+        private TgcMesh ship_soft { get; set; }
+        /*
+         * Model Track01
+         */
+        private TgcMesh pCube1 { get; set; }
+        /*
+         * Earth
+         */
+        private TgcMesh pSphere1 { get; set; }
+        /*
+         * Sun
+         */
+        private TgcMesh pSphere3 { get; set; }
+        /*
+         * Mars
+         */
+        private TgcMesh pSphere2 { get; set; }
+        /*
+         * Sky
+         */
+        private TgcMesh pSphere4 { get; set; }
 
-        // Boleano para ver si dibujamos el boundingbox
-        private bool BoundingBox { get; set; }
-
-
-        // SkyBox
-        private TgcSkyBox skyBox;
-
-        // Camara en tercera persona
+        /*
+         * Camara en tercera persona
+         */
         private TgcThirdPersonCamera camaraInterna;
 
         // Variables varias
@@ -72,10 +86,87 @@ namespace TGC.Group.Model
 
         private TGCBox test_hit { get; set; }
 
+        /* 
+         * Variables test
+         */
 
+        // Boundingbox test
+        private bool BoundingBox { get; set; }
+        
+        // SkyBox test
+        private TgcSkyBox skyBox;
+            
         public override void Init()
         {
-            // Inicialización del skybox
+            vertex_pool = new List<TGCVector3>();
+            permanent_pool = new List<TGCVector3>();
+
+            // Device de DirectX para crear primitivas.
+            var d3dDevice = D3DDevice.Instance.Device;
+
+            // Textura de la carperta Media.
+            var pathTexturaCaja = MediaDir + Game.Default.TexturaCaja;
+            
+            // Textura para pruebas
+            var texture = TgcTexture.createTexture(pathTexturaCaja);
+            var size = new TGCVector3(5, 5, 10);
+            
+            test_hit = TGCBox.fromSize(new TGCVector3(1, 1, 1), texture);
+            test_hit.Position = new TGCVector3(0, 0, 0);
+            test_hit.Transform = TGCMatrix.Identity;
+
+            // Caja de prueba para poderes
+            var sizePowerShort = new TGCVector3(10, 2, 10);
+            ShortPowerBox = TGCBox.fromSize(sizePowerShort, texture);
+            ShortPowerBox.Position = new TGCVector3(0, 0, 0);
+            ShortPowerBox.Transform = TGCMatrix.Identity;
+           
+            // Cargo los meshes
+
+            var loader = new TgcSceneLoader();
+            
+            // Track path
+            track01 = loader.loadSceneFromFile(MediaDir + "Test\\ship_path-TgcScene.xml").Meshes[0];
+            track01.Move(0, 5, 0);
+
+            // Nave
+            Ship = loader.loadSceneFromFile(MediaDir + "Test\\ship_soft-TgcScene.xml").Meshes[0];
+            Ship.Move(0, 5, 0);
+
+            // Track model
+            pCube1 = loader.loadSceneFromFile(MediaDir + "Test\\pCube1-TgcScene.xml").Meshes[0];
+            pCube1.Move(0, 0, 0);
+
+            // Tierra
+            pSphere1 = loader.loadSceneFromFile(MediaDir + "Test\\pSphere1-TgcScene.xml").Meshes[0];
+            pSphere1.Move(0, 0, 0);
+
+            // Sol
+            pSphere3 = loader.loadSceneFromFile(MediaDir + "Test\\pSphere3-TgcScene.xml").Meshes[0];
+            pSphere3.Move(0, 0, 0);
+
+            // Marte
+            pSphere2 = loader.loadSceneFromFile(MediaDir + "Test\\pSphere2-TgcScene.xml").Meshes[0];
+            pSphere2.Move(0, 0, 0);
+
+            // Sky
+            pSphere4 = loader.loadSceneFromFile(MediaDir + "Test\\pSphere4-TgcScene.xml").Meshes[0];
+            pSphere4.Move(0, 0, 0);
+
+            // Cámara en tercera persona
+            camaraInterna = new TgcThirdPersonCamera(Ship.Position, 10, -35);
+            Camara = camaraInterna;
+
+            target = Ship.Position;
+            addVertexCollection(track01.getVertexPositions(), new TGCVector3(0, 5, 0));
+
+            target = findNextTarget(vertex_pool);
+
+            /*
+             *Skybox TEST
+             */
+
+             /*
             skyBox = new TgcSkyBox();
             skyBox.Center = TGCVector3.Empty;
             skyBox.Size = new TGCVector3(20000, 20000, 20000);
@@ -88,64 +179,7 @@ namespace TGC.Group.Model
             skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Back, MediaDir + "SkyBox\\purplenebula_ft.jpg");
             skyBox.SkyEpsilon = 25f;
             skyBox.Init();
-
-            vertex_pool = new List<TGCVector3>();
-            permanent_pool = new List<TGCVector3>();
-
-            //Device de DirectX para crear primitivas.
-            var d3dDevice = D3DDevice.Instance.Device;
-
-            //Textura de la carperta Media. Game.Default es un archivo de configuracion (Game.settings) util para poner cosas.
-            //Pueden abrir el Game.settings que se ubica dentro de nuestro proyecto para configurar.
-            var pathTexturaCaja = MediaDir + Game.Default.TexturaCaja;
-
-
-            ///
-            /// Caja de prueba para la nave
-            /// 
-
-            var texture = TgcTexture.createTexture(pathTexturaCaja);
-            var size = new TGCVector3(5, 5, 10);
-            Ship = TGCBox.fromSize(size, texture);
-            Ship.Position = new TGCVector3(0, 0, -20);
-            Ship.Transform = TGCMatrix.Identity;
-            
-            test_hit = TGCBox.fromSize(new TGCVector3(1, 1, 1), texture);
-            test_hit.Position = new TGCVector3(0, 0, 0);
-            test_hit.Transform = TGCMatrix.Identity;
-
-            ///
-            /// Caja de prueba para el poder corto
-            /// 
-
-
-            var sizePowerShort = new TGCVector3(10, 2, 10);
-            ShortPowerBox = TGCBox.fromSize(sizePowerShort, texture);
-            ShortPowerBox.Position = new TGCVector3(0, 0, 0);
-            ShortPowerBox.Transform = TGCMatrix.Identity;
-
-            ///
-            /// Mesh de prueba nave desde 3ds
-            /// 
-
-            var loader = new TgcSceneLoader();
-            shipMesh = loader.loadSceneFromFile(MediaDir + "Test\\test2-TgcScene.xml").Meshes[0];
-            shipMesh.Move(0, 0, 0);
-            //mainMesh.RotateY(180);
-
-            track01 = loader.loadSceneFromFile(MediaDir + "Test\\track01-TgcScene.xml").Meshes[0];
-            track01.Move(0, 0, 0);
-
-
-            // Cámara en tercera persona
-            camaraInterna = new TgcThirdPersonCamera(Ship.Position, 10, -35);
-            Camara = camaraInterna;
-
-
-            target = Ship.Position;
-            addVertexCollection(track01.getVertexPositions(), new TGCVector3(0, 0, 0));
-
-            target = findNextTarget(vertex_pool);
+            */
         }
 
         public override void Update()
@@ -244,10 +278,16 @@ namespace TGC.Group.Model
 
 
             // Renders
-            skyBox.Render();
+            // skyBox.Render();
             Ship.Transform = TGCMatrix.Scaling(Ship.Scale) * TGCMatrix.RotationYawPitchRoll(Ship.Rotation.Y, Ship.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(Ship.Position);
             Ship.Render();
             track01.Render();
+            pCube1.Render();
+            pSphere1.Render();
+            pSphere3.Render();
+            pSphere2.Render();
+            pSphere4.Render();
+
             ShortPowerBox.Transform = TGCMatrix.Scaling(ShortPowerBox.Scale) * TGCMatrix.RotationYawPitchRoll(ShortPowerBox.Rotation.Y, ShortPowerBox.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(ShortPowerBox.Position);
             //ShortPowerBox.Render();
 

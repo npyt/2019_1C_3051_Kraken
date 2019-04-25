@@ -11,6 +11,7 @@ using TGC.Core.Textures;
 using TGC.Group.Camara;
 using TGC.Core.Terrain;
 using TGC.Core.Collision;
+using TGC.Core.Text;
 using System.Collections.Generic;
 
 namespace TGC.Group.Model
@@ -99,6 +100,8 @@ namespace TGC.Group.Model
         /* 
          * Variables test
          */
+
+        private TgcText2D currentCamera;
 
         // Boundingbox test
         private bool BoundingBox { get; set; }
@@ -206,6 +209,8 @@ namespace TGC.Group.Model
         {
             PreUpdate();
 
+            float rotate = 0;
+
             counter_elapsed++;
             sum_elapsed += ElapsedTime;
             medium_elapsed = sum_elapsed / counter_elapsed;
@@ -261,35 +266,46 @@ namespace TGC.Group.Model
                 };
             }
 
+            float moveForward = 0;
+
             // Movernos adelante y atras, sobre el eje Z.
             if (Camara.Equals(godCamera))
             {
                 if (Input.keyDown(Key.Up) || Input.keyDown(Key.W))
                 {
-                    movementGod.Z = 1;
+                    moveForward = 1;
                 }
                 else if (Input.keyDown(Key.Down) || Input.keyDown(Key.S))
                 {
-                    movementGod.Z = -1;
-                }
-                else if (Input.keyDown(Key.Left) || Input.keyDown(Key.A))
-                {
-                    movementGod.X = -1;
-                }
-                else if (Input.keyDown(Key.Right) || Input.keyDown(Key.D))
-                {
-                    movementGod.X = 1;
+                    moveForward = -1;
                 }
                 else if (Input.keyDown(Key.Space))
                 {
-                    movementGod.Y = 1;
+                    movementGod.Y = 1 * ElapsedTime * MOVEMENT_SPEED;
                 }
                 else if (Input.keyDown(Key.C))
                 {
-                    movementGod.Y = -1;
+                    movementGod.Y = -1 * ElapsedTime * MOVEMENT_SPEED;
+                }
+                else if (Input.keyDown(Key.D) || Input.keyPressed(Key.Right))
+                {
+                    rotate = 2 * ElapsedTime;
+
+                }
+                else if (Input.keyDown(Key.A) || Input.keyPressed(Key.Left))
+                {
+                    rotate = -2 * ElapsedTime;
                 }
 
             }
+
+            godBox.Rotation += new TGCVector3(0, rotate, 0);
+            godCamera.rotateY(rotate);
+            float moveF = moveForward * ElapsedTime * MOVEMENT_SPEED;
+            movementGod.Z = (float)Math.Cos(godBox.Rotation.Y) * moveF;
+            movementGod.X = (float)Math.Sin(godBox.Rotation.Y) * moveF;
+
+
 
             // Comentar si no se mueve por teclado
             movement = target;
@@ -304,10 +320,10 @@ namespace TGC.Group.Model
             {
                 movement.Normalize();
                 movement.Multiply(MOVEMENT_SPEED * ElapsedTime);
-                
+
             }
             //test_hit.Position = getPositionAtMiliseconds(1000);
-            
+
             //Ship.RotateX(movement.Y * movement.Z );
             //Ship.RotateY(movement.Z * movement.X );
             Ship.Move(movement);
@@ -317,6 +333,13 @@ namespace TGC.Group.Model
             {
                 target = findNextTarget(vertex_pool);
             }
+
+            currentCamera = new TgcText2D();
+            currentCamera.Text = "Cámara actual (cambiar con TAB): " + Camara.ToString();
+            currentCamera.Position = new Point(50, 20);
+            currentCamera.Align = TgcText2D.TextAlign.CENTER;
+            currentCamera.Color = Color.LightBlue;
+            currentCamera.changeFont(new Font(FontFamily.GenericMonospace, 14, FontStyle.Italic));
 
             PostUpdate();
         }
@@ -333,6 +356,12 @@ namespace TGC.Group.Model
             DrawText.drawText("Medium Elapsed: \n" + medium_elapsed, 145, 20, Color.Yellow);
             DrawText.drawText("Elapsed: \n" + ElapsedTime, 145, 60, Color.Yellow);
 
+            StringFormat stringFormat = new StringFormat();
+            stringFormat.Alignment = StringAlignment.Center;      // Horizontal Alignment
+            stringFormat.LineAlignment = StringAlignment.Center;  // Vertical Alignment
+
+            
+
 
             // Renders
             skyBox.Render();
@@ -343,6 +372,7 @@ namespace TGC.Group.Model
             pSphere1.Render();
             pSphere3.Render();
             pSphere2.Render();
+            currentCamera.render();
             //pSphere4.Render();
 
             ShortPowerBox.Transform = TGCMatrix.Scaling(ShortPowerBox.Scale) * TGCMatrix.RotationYawPitchRoll(ShortPowerBox.Rotation.Y, ShortPowerBox.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(ShortPowerBox.Position);

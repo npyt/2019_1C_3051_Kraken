@@ -13,6 +13,8 @@ namespace TGC.Group.Camara
         /// <summary>
         ///     Crear una nueva camara
         /// </summary>
+        /// 
+        
         public TgcThirdPersonCamera()
         {
             resetValues();

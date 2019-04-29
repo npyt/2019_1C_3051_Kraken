@@ -87,6 +87,7 @@ namespace TGC.Group.Model
         private const float VERTEX_MIN_DISTANCE = 0.3f;
 
         TGCVector3 target;
+        TGCVector3 previousTarget;
         private List<TGCVector3> vertex_pool;
         private List<TGCVector3> permanent_pool;
 
@@ -97,6 +98,8 @@ namespace TGC.Group.Model
 
         private TGCBox test_hit { get; set; }
 
+        TGCVector3 currentMeshRotVec;
+
         /* 
          * Variables test
          */
@@ -105,7 +108,7 @@ namespace TGC.Group.Model
 
         // Boundingbox test
         private bool BoundingBox { get; set; }
-        
+
         // SkyBox test
         private TgcSkyBox skyBox;
 
@@ -140,8 +143,7 @@ namespace TGC.Group.Model
             godBox.Position = new TGCVector3(0, 0, 0);
             godBox.Transform = TGCMatrix.Identity;
 
-            // Cargo los meshes
-
+            // Loader para los mesh
             var loader = new TgcSceneLoader();
 
             // Track path
@@ -178,12 +180,13 @@ namespace TGC.Group.Model
             // GOD Camera
             //godCamera = new TgcRotationalCamera(godBox.Position, godBox.Size.Length() * 6, Input);
             godCamera = new TgcThirdPersonCamera(godBox.Position, 60, -135);
-            Camara = godCamera;
+            Camara = camaraInterna;
 
             target = Ship.Position;
             addVertexCollection(track01.getVertexPositions(), new TGCVector3(0, 5, 0));
 
             target = findNextTarget(vertex_pool);
+            
 
             /*
              *Skybox TEST
@@ -241,19 +244,13 @@ namespace TGC.Group.Model
                 ShortPowerBox.updateValues();
             }
 
-            // Movimiento de la nave (Ship)
-
-            var movement = TGCVector3.Empty;
-            var movementGod = TGCVector3.Empty;
-            var originalPos = Ship.Position;
-
-            // Capturar Input teclado para activar o no el bounding box
+            // Activar bounding box
             if (Input.keyPressed(Key.F))
             {
                 BoundingBox = !BoundingBox;
             }
 
-            // Change Camera
+            // Cambiar cámara
             if (Input.keyPressed(Key.Tab))
             {
                 if (Camara.Equals(camaraInterna))
@@ -266,9 +263,10 @@ namespace TGC.Group.Model
                 };
             }
 
+            // Movimiento de la godCamera
+            var movementGod = TGCVector3.Empty;
             float moveForward = 0;
 
-            // Movernos adelante y atras, sobre el eje Z.
             if (Camara.Equals(godCamera))
             {
                 if (Input.keyDown(Key.Up) || Input.keyDown(Key.W))
@@ -298,16 +296,20 @@ namespace TGC.Group.Model
                 }
 
             }
+            godBox.Move(movementGod);
 
+            // Rotación de la GodCamera
             godBox.Rotation += new TGCVector3(0, rotate, 0);
             godCamera.rotateY(rotate);
             float moveF = moveForward * ElapsedTime * MOVEMENT_SPEED;
             movementGod.Z = (float)Math.Cos(godBox.Rotation.Y) * moveF;
             movementGod.X = (float)Math.Sin(godBox.Rotation.Y) * moveF;
+            
 
-
-
-            // Comentar si no se mueve por teclado
+            // Movimiento de la nave (Ship)
+            var movement = TGCVector3.Empty;
+            var originalPos = Ship.Position;
+            
             movement = target;
             movement.Subtract(originalPos);
 
@@ -323,22 +325,34 @@ namespace TGC.Group.Model
 
             }
             //test_hit.Position = getPositionAtMiliseconds(1000);
-
-            //Ship.RotateX(movement.Y * movement.Z );
-            //Ship.RotateY(movement.Z * movement.X );
-            Ship.Move(movement);
-            godBox.Move(movementGod);
-
+                        
+            float angleXZ = 0;
             if (movement.Length() < (MOVEMENT_SPEED * ElapsedTime) / 2)
             {
+                previousTarget = target;
                 target = findNextTarget(vertex_pool);
-            }
 
+                // XZ
+                //TGCVector3 targetXZ = new TGCVector3(target.X, target.Y, 0);
+                //TGCVector3 previousTargetXZ = new TGCVector3(previousTarget.X, previousTarget.Z, 0);
+                //angleXZ = FastMath.Acos(TGCVector3.Dot(TGCVector3.Normalize(targetXZ), TGCVector3.Normalize(previousTargetXZ)));
+                angleXZ = FastMath.Atan2(target.X, target.Z) - FastMath.Atan2(previousTarget.X, previousTarget.Z);
+
+            }
+            Ship.Move(movement);
+            Ship.RotateY(angleXZ);
+            //camaraInterna.rotateY(angleXZ * ElapsedTime);
+
+            /* // Screen size 
+            int ScreenWidth = System.Windows.Forms.Screen.PrimaryScreen.Bounds.Width;
+            int ScreenHeight = System.Windows.Forms.Screen.PrimaryScreen.Bounds.Height;
+            */
+
+            // Texto de currentCamera
             currentCamera = new TgcText2D();
-            currentCamera.Text = "Cámara actual (cambiar con TAB): " + Camara.ToString();
-            currentCamera.Position = new Point(50, 20);
+            currentCamera.Text = "CAMBIAR CÁMARA CON TAB";
             currentCamera.Align = TgcText2D.TextAlign.CENTER;
-            currentCamera.Color = Color.LightBlue;
+            currentCamera.Color = Color.Yellow;
             currentCamera.changeFont(new Font(FontFamily.GenericMonospace, 14, FontStyle.Italic));
 
             PostUpdate();
@@ -360,35 +374,35 @@ namespace TGC.Group.Model
             stringFormat.Alignment = StringAlignment.Center;      // Horizontal Alignment
             stringFormat.LineAlignment = StringAlignment.Center;  // Vertical Alignment
 
-            
+
+            // Transformaciones
+            Ship.Transform = TGCMatrix.Scaling(Ship.Scale) * TGCMatrix.RotationYawPitchRoll(Ship.Rotation.Y, Ship.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(Ship.Position);
+            godBox.Transform = TGCMatrix.Scaling(godBox.Scale) * TGCMatrix.RotationYawPitchRoll(godBox.Rotation.Y, godBox.Rotation.X, godBox.Rotation.Z) * TGCMatrix.Translation(godBox.Position);
+            ShortPowerBox.Transform = TGCMatrix.Scaling(ShortPowerBox.Scale) * TGCMatrix.RotationYawPitchRoll(ShortPowerBox.Rotation.Y, ShortPowerBox.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(ShortPowerBox.Position);
+            test_hit.Transform = TGCMatrix.Scaling(test_hit.Scale) * TGCMatrix.RotationYawPitchRoll(test_hit.Rotation.Y, test_hit.Rotation.X, test_hit.Rotation.Z) * TGCMatrix.Translation(test_hit.Position);
 
 
             // Renders
             skyBox.Render();
-            Ship.Transform = TGCMatrix.Scaling(Ship.Scale) * TGCMatrix.RotationYawPitchRoll(Ship.Rotation.Y, Ship.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(Ship.Position);
             Ship.Render();
             track01.Render();
             pCube1.Render();
             pSphere1.Render();
             pSphere3.Render();
-            pSphere2.Render();
+            pSphere2.Render(); 
+            godBox.Render();
             currentCamera.render();
             //pSphere4.Render();
-
-            ShortPowerBox.Transform = TGCMatrix.Scaling(ShortPowerBox.Scale) * TGCMatrix.RotationYawPitchRoll(ShortPowerBox.Rotation.Y, ShortPowerBox.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(ShortPowerBox.Position);
             //ShortPowerBox.Render();
-
-            test_hit.Transform = TGCMatrix.Scaling(test_hit.Scale) * TGCMatrix.RotationYawPitchRoll(test_hit.Rotation.Y, test_hit.Rotation.X, test_hit.Rotation.Z) * TGCMatrix.Translation(test_hit.Position);
             test_hit.Render();
-
-
-            //Render de BoundingBox, muy útil para debug de colisiones.
             if (BoundingBox)
             {
                 Ship.BoundingBox.Render();
                 ShortPowerBox.BoundingBox.Render();
+                godBox.BoundingBox.Render();
             }
 
+            // Posición de cámaras
             camaraInterna.Target = Ship.Position;
             godCamera.Target = godBox.Position;
 
@@ -419,7 +433,7 @@ namespace TGC.Group.Model
                 }
             }
         }
-
+       
         public TGCVector3 findNextTarget(List<TGCVector3> pool)
         {
             TGCVector3 current_target = target;
@@ -474,11 +488,6 @@ namespace TGC.Group.Model
             return simulated_ship_position;
         }
 
-        /// <summary>
-        ///     Se llama cuando termina la ejecución del ejemplo.
-        ///     Hacer Dispose() de todos los objetos creados.
-        ///     Es muy importante liberar los recursos, sobretodo los gráficos ya que quedan bloqueados en el device de video.
-        /// </summary>
         public override void Dispose()
         {
             Ship.Dispose();

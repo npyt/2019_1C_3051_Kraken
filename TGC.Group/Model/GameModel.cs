@@ -12,6 +12,7 @@ using TGC.Group.Camara;
 using TGC.Core.Terrain;
 using TGC.Core.Collision;
 using TGC.Core.Text;
+using TGC.Group.Stats;
 using System.Collections.Generic;
 
 namespace TGC.Group.Model
@@ -106,14 +107,20 @@ namespace TGC.Group.Model
 
         private TgcText2D currentCamera;
 
+        private TgcText2D playerStats;
+
         // Boundingbox test
         private bool BoundingBox { get; set; }
 
         // SkyBox test
         private TgcSkyBox skyBox;
 
+
+        Stat stat = new Stat("PLAYER");
+
         public override void Init()
         {
+
             vertex_pool = new List<TGCVector3>();
             permanent_pool = new List<TGCVector3>();
 
@@ -232,17 +239,25 @@ namespace TGC.Group.Model
             {
                 ShortPowerBox.Color = Color.Yellow;
                 ShortPowerBox.updateValues();
-                if (Input.keyDown(Key.Space))
+                if (Input.keyPressed(Key.Space))
                 {
                     ShortPowerBox.Color = Color.Red;
                     ShortPowerBox.updateValues();
+                    stat.totalMultiply++;
+                    stat.addPoints(10);
+                }
+            }else
+            {
+                if (Input.keyPressed(Key.Space))
+                {
+                    ShortPowerBox.Color = Color.Red;
+                    ShortPowerBox.updateValues();
+                    stat.totalMultiply = 1;
+                    stat.addPoints(-10);
                 }
             }
-            else
-            {
-                ShortPowerBox.Color = Color.White;
-                ShortPowerBox.updateValues();
-            }
+            ShortPowerBox.Color = Color.White;
+            ShortPowerBox.updateValues();
 
             // Activar bounding box
             if (Input.keyPressed(Key.F))
@@ -355,6 +370,13 @@ namespace TGC.Group.Model
             currentCamera.Color = Color.Yellow;
             currentCamera.changeFont(new Font(FontFamily.GenericMonospace, 14, FontStyle.Italic));
 
+            playerStats = new TgcText2D();
+            playerStats.Text = "PUNTAJE ACTUAL: " + stat.totalPoints;
+            playerStats.Align = TgcText2D.TextAlign.CENTER;
+            playerStats.Position = new Point(playerStats.Position.X, 20);
+            playerStats.Color = Color.Yellow;
+            playerStats.changeFont(new Font(FontFamily.GenericMonospace, 14, FontStyle.Italic));
+
             PostUpdate();
         }
 
@@ -392,6 +414,7 @@ namespace TGC.Group.Model
             pSphere2.Render(); 
             godBox.Render();
             currentCamera.render();
+            playerStats.render();
             //pSphere4.Render();
             //ShortPowerBox.Render();
             test_hit.Render();

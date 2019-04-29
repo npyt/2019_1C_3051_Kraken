@@ -243,7 +243,7 @@ namespace TGC.Group.Model
                 {
                     ShortPowerBox.Color = Color.Red;
                     ShortPowerBox.updateValues();
-                    stat.totalMultiply++;
+                    stat.addMultiply();
                     stat.addPoints(10);
                 }
             }else
@@ -252,7 +252,7 @@ namespace TGC.Group.Model
                 {
                     ShortPowerBox.Color = Color.Red;
                     ShortPowerBox.updateValues();
-                    stat.totalMultiply = 1;
+                    stat.cancelMultiply();
                     stat.addPoints(-10);
                 }
             }
@@ -371,9 +371,11 @@ namespace TGC.Group.Model
             currentCamera.changeFont(new Font(FontFamily.GenericMonospace, 14, FontStyle.Italic));
 
             playerStats = new TgcText2D();
-            playerStats.Text = "PUNTAJE ACTUAL: " + stat.totalPoints;
-            playerStats.Align = TgcText2D.TextAlign.CENTER;
-            playerStats.Position = new Point(playerStats.Position.X, 20);
+            playerStats.Text = "PUNTAJE ACTUAL: " + stat.totalPoints + " MULTIPLICADOR ACTUAL: " + 
+                stat.totalMultiply + " MULTIPLICADOR PARCIAL: " + stat.partialMultiply;
+            playerStats.Size = new Size(280, 200);
+            playerStats.Align = TgcText2D.TextAlign.LEFT;
+            playerStats.Position = new Point(10, 320);
             playerStats.Color = Color.Yellow;
             playerStats.changeFont(new Font(FontFamily.GenericMonospace, 14, FontStyle.Italic));
 

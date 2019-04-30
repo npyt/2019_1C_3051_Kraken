@@ -99,7 +99,8 @@ namespace TGC.Group.Model
 
         private TGCBox test_hit { get; set; }
 
-        TGCVector3 currentMeshRotVec;
+        TGCVector3 currentRot;
+        TGCVector3 originalRot;
 
         /* 
          * Variables test
@@ -159,7 +160,8 @@ namespace TGC.Group.Model
 
             // Nave
             Ship = loader.loadSceneFromFile(MediaDir + "Test\\ship_soft-TgcScene.xml").Meshes[0];
-            Ship.Move(0, 5, 0);
+            Ship.Move(0, 15, 0);
+            originalRot = new TGCVector3(0, 0, 1);
 
             // Track model
             pCube1 = loader.loadSceneFromFile(MediaDir + "Test\\pCube1-TgcScene.xml").Meshes[0];
@@ -182,7 +184,7 @@ namespace TGC.Group.Model
             pSphere4.Move(0, 0, 0);
 
             // Cámara en tercera persona
-            camaraInterna = new TgcThirdPersonCamera(Ship.Position, 60, -135);
+            camaraInterna = new TgcThirdPersonCamera(Ship.Position + new TGCVector3(0, 0, 15), 30, -55);
 
             // GOD Camera
             //godCamera = new TgcRotationalCamera(godBox.Position, godBox.Size.Length() * 6, Input);
@@ -212,6 +214,7 @@ namespace TGC.Group.Model
             skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Back, MediaDir + "SkyBox\\purplenebula_ft.jpg");
             skyBox.SkyEpsilon = 25f;
             skyBox.Init();
+
             
         }
 
@@ -311,15 +314,15 @@ namespace TGC.Group.Model
                 }
 
             }
-            godBox.Move(movementGod);
-
+            
             // Rotación de la GodCamera
             godBox.Rotation += new TGCVector3(0, rotate, 0);
             godCamera.rotateY(rotate);
             float moveF = moveForward * ElapsedTime * MOVEMENT_SPEED;
             movementGod.Z = (float)Math.Cos(godBox.Rotation.Y) * moveF;
             movementGod.X = (float)Math.Sin(godBox.Rotation.Y) * moveF;
-            
+
+            godBox.Move(movementGod);
 
             // Movimiento de la nave (Ship)
             var movement = TGCVector3.Empty;
@@ -340,23 +343,41 @@ namespace TGC.Group.Model
 
             }
             //test_hit.Position = getPositionAtMiliseconds(1000);
-                        
-            float angleXZ = 0;
             if (movement.Length() < (MOVEMENT_SPEED * ElapsedTime) / 2)
             {
-                previousTarget = target;
                 target = findNextTarget(vertex_pool);
-
-                // XZ
-                //TGCVector3 targetXZ = new TGCVector3(target.X, target.Y, 0);
-                //TGCVector3 previousTargetXZ = new TGCVector3(previousTarget.X, previousTarget.Z, 0);
-                //angleXZ = FastMath.Acos(TGCVector3.Dot(TGCVector3.Normalize(targetXZ), TGCVector3.Normalize(previousTargetXZ)));
-                angleXZ = FastMath.Atan2(target.X, target.Z) - FastMath.Atan2(previousTarget.X, previousTarget.Z);
-
             }
+
+            float angleXZ = 0;
+            float angleYZ = 0;
+            TGCVector3 directionXZ = TGCVector3.Normalize(new TGCVector3(target.X, 0, target.Z) - new TGCVector3(Ship.Position.X, 0, Ship.Position.Z));
+            TGCVector3 directionYZ = TGCVector3.Normalize(new TGCVector3(0, target.Y, target.Z) - new TGCVector3(0, Ship.Position.Y, Ship.Position.Z));
+
+            angleXZ = -FastMath.Acos(TGCVector3.Dot(originalRot, directionXZ));
+            angleYZ = -FastMath.Acos(TGCVector3.Dot(originalRot, directionYZ));
+            if (directionXZ.X > 0)
+            {
+                angleXZ *= -1;
+            }
+            if (directionYZ.Y < 0)
+            {
+                angleYZ *= -1;
+            }
+
+            float orRotY = Ship.Rotation.Y;
+            float angIntY = orRotY * (1.0f - 0.1f) + angleXZ * 0.1f;
+
+            float orRotX = Ship.Rotation.X;
+            float angIntX = orRotX * (1.0f - 0.1f) + angleYZ * 0.1f;
+
+            Ship.Rotation = new TGCVector3(angleYZ, angIntY, 0);
+
+            float originalRotationY = camaraInterna.RotationY;
+            float anguloIntermedio = originalRotationY * (1.0f - 0.03f) + angleXZ * 0.03f;
+            camaraInterna.RotationY = anguloIntermedio ;
+            currentRot = directionXZ + directionYZ;
+
             Ship.Move(movement);
-            Ship.RotateY(angleXZ);
-            //camaraInterna.rotateY(angleXZ * ElapsedTime);
 
             /* // Screen size 
             int ScreenWidth = System.Windows.Forms.Screen.PrimaryScreen.Bounds.Width;
@@ -428,7 +449,7 @@ namespace TGC.Group.Model
             }
 
             // Posición de cámaras
-            camaraInterna.Target = Ship.Position;
+            camaraInterna.Target = Ship.Position + new TGCVector3(0, 0, 15);
             godCamera.Target = godBox.Position;
 
             PostRender();

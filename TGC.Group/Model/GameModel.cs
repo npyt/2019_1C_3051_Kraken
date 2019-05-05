@@ -42,8 +42,7 @@ namespace TGC.Group.Model
         private TgcMesh Ship { get; set; }
 
         // path01 path
-        private TgcMesh path01 { get; set; }
-        private TgcMesh path02 { get; set; }
+        private List<TgcMesh> paths;
 
         //PowerBoxes
         private TGCBox ShortPowerBox { get; set; }
@@ -55,8 +54,7 @@ namespace TGC.Group.Model
         /*
          * Model Track01
          */
-        private TgcMesh track01 { get; set; }
-        private TgcMesh track02 { get; set; }
+        private List<TgcMesh> tracks;
         /*
          * Earth
          */
@@ -86,7 +84,7 @@ namespace TGC.Group.Model
         private TgcThirdPersonCamera godCamera;
 
         // Variables varias
-        private const float MOVEMENT_SPEED = 112f;
+        private const float MOVEMENT_SPEED = 12f;
         private const float VERTEX_MIN_DISTANCE = 0.3f;
 
         TGCVector3 target;
@@ -123,6 +121,8 @@ namespace TGC.Group.Model
 
         public override void Init()
         {
+            tracks = new List<TgcMesh>();
+            paths = new List<TgcMesh>();
 
             vertex_pool = new List<TGCVector3>();
             permanent_pool = new List<TGCVector3>();
@@ -157,16 +157,10 @@ namespace TGC.Group.Model
             var loader = new TgcSceneLoader();
 
             // Track path
-            path01 = loader.loadSceneFromFile(MediaDir + "Test\\path01-TgcScene.xml").Meshes[0];
-            path01.Move(0, 5, 0);
-            path02 = loader.loadSceneFromFile(MediaDir + "Test\\path02-TgcScene.xml").Meshes[0];
-            path02.Move(0, 5, 0);
+            //paths.Add(loader.loadSceneFromFile(MediaDir + "Test\\path02-TgcScene.xml").Meshes[0]);
 
             // Track model
-            track01 = loader.loadSceneFromFile(MediaDir + "Test\\track01-TgcScene.xml").Meshes[0];
-            track01.Move(0, 0, 0);
-            track02 = loader.loadSceneFromFile(MediaDir + "Test\\track02-TgcScene.xml").Meshes[0];
-            track02.Move(0, 0, 0);
+            //tracks.Add(loader.loadSceneFromFile(MediaDir + "Test\\track02-TgcScene.xml").Meshes[0]);
 
             // Nave
             Ship = loader.loadSceneFromFile(MediaDir + "Test\\ship_soft-TgcScene.xml").Meshes[0];
@@ -198,7 +192,11 @@ namespace TGC.Group.Model
             Camara = camaraInterna;
 
             target = Ship.Position;
-            addVertexCollection(path01.getVertexPositions(), new TGCVector3(0, 5, 0));
+
+            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track01-TgcScene.xml").Meshes[0],
+                loader.loadSceneFromFile(MediaDir + "Test\\path01-TgcScene.xml").Meshes[0]);
+            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track02-TgcScene.xml").Meshes[0],
+                loader.loadSceneFromFile(MediaDir + "Test\\path02-TgcScene.xml").Meshes[0]);
 
             target = findNextTarget(vertex_pool);
             
@@ -438,10 +436,10 @@ namespace TGC.Group.Model
             // Renders
             skyBox.Render();
             Ship.Render();
-            path01.Render();
-            track01.Render();
-            path02.Render();
-            track02.Render();
+            for(int a=0; a<tracks.Count; a++)
+            {
+                tracks[a].Render();
+            }
             pSphere1.Render();
             pSphere3.Render();
             pSphere2.Render(); 
@@ -521,7 +519,6 @@ namespace TGC.Group.Model
             else
             {
                 new_target = current_target;
-                addVertexCollection(path01.getVertexPositions(), new TGCVector3(0, 0, 0));
             }
             target = new_target;
 
@@ -542,6 +539,42 @@ namespace TGC.Group.Model
 
             target = originalTarget;
             return simulated_ship_position;
+        }
+
+        private void concatTrack(TgcMesh track, TgcMesh path)
+        {
+            TGCVector3 lastVertex = TGCVector3.Empty;
+
+            if(tracks.Count == 0)
+            {
+                track.Move(0, 0, 0);
+                tracks.Add(track);
+
+                path.Move(0, 0, 0);
+                paths.Add(path);
+
+                addVertexCollection(path.getVertexPositions(), new TGCVector3(0, 0, 0));
+
+                return;
+            }
+
+            lastVertex = vertex_pool[0];
+            for(int a=0; a<vertex_pool.Count; a++)
+            {
+                TGCVector3 thisvertex = vertex_pool[a];
+                if(thisvertex.Z >= lastVertex.Z)
+                {
+                    lastVertex = thisvertex;
+                }
+            }
+
+            track.Move(lastVertex);
+            tracks.Add(track);
+
+            path.Move(lastVertex);
+            paths.Add(path);
+
+            addVertexCollection(path.getVertexPositions(), lastVertex);
         }
 
         public override void Dispose()

@@ -41,8 +41,9 @@ namespace TGC.Group.Model
         // Nave principal
         private TgcMesh Ship { get; set; }
 
-        // Track01 path
-        private TgcMesh track01 { get; set; }
+        // path01 path
+        private TgcMesh path01 { get; set; }
+        private TgcMesh path02 { get; set; }
 
         //PowerBoxes
         private TGCBox ShortPowerBox { get; set; }
@@ -54,7 +55,8 @@ namespace TGC.Group.Model
         /*
          * Model Track01
          */
-        private TgcMesh pCube1 { get; set; }
+        private TgcMesh track01 { get; set; }
+        private TgcMesh track02 { get; set; }
         /*
          * Earth
          */
@@ -155,17 +157,21 @@ namespace TGC.Group.Model
             var loader = new TgcSceneLoader();
 
             // Track path
-            track01 = loader.loadSceneFromFile(MediaDir + "Test\\ship_path-TgcScene.xml").Meshes[0];
-            track01.Move(0, 5, 0);
+            path01 = loader.loadSceneFromFile(MediaDir + "Test\\path01-TgcScene.xml").Meshes[0];
+            path01.Move(0, 5, 0);
+            path02 = loader.loadSceneFromFile(MediaDir + "Test\\path02-TgcScene.xml").Meshes[0];
+            path02.Move(0, 5, 0);
+
+            // Track model
+            track01 = loader.loadSceneFromFile(MediaDir + "Test\\track01-TgcScene.xml").Meshes[0];
+            track01.Move(0, 0, 0);
+            track02 = loader.loadSceneFromFile(MediaDir + "Test\\track02-TgcScene.xml").Meshes[0];
+            track02.Move(0, 0, 0);
 
             // Nave
             Ship = loader.loadSceneFromFile(MediaDir + "Test\\ship_soft-TgcScene.xml").Meshes[0];
-            Ship.Move(0, 15, 0);
+            Ship.Move(0, 25, 0);
             originalRot = new TGCVector3(0, 0, 1);
-
-            // Track model
-            pCube1 = loader.loadSceneFromFile(MediaDir + "Test\\pCube1-TgcScene.xml").Meshes[0];
-            pCube1.Move(0, 0, 0);
 
             // Tierra
             pSphere1 = loader.loadSceneFromFile(MediaDir + "Test\\pSphere1-TgcScene.xml").Meshes[0];
@@ -192,7 +198,7 @@ namespace TGC.Group.Model
             Camara = camaraInterna;
 
             target = Ship.Position;
-            addVertexCollection(track01.getVertexPositions(), new TGCVector3(0, 5, 0));
+            addVertexCollection(path01.getVertexPositions(), new TGCVector3(0, 5, 0));
 
             target = findNextTarget(vertex_pool);
             
@@ -370,11 +376,11 @@ namespace TGC.Group.Model
             float orRotX = Ship.Rotation.X;
             float angIntX = orRotX * (1.0f - 0.1f) + angleYZ * 0.1f;
 
-            Ship.Rotation = new TGCVector3(angleYZ, angIntY, 0);
+            //Ship.Rotation = new TGCVector3(angleYZ, angIntY, 0);
 
             float originalRotationY = camaraInterna.RotationY;
             float anguloIntermedio = originalRotationY * (1.0f - 0.03f) + angleXZ * 0.03f;
-            camaraInterna.RotationY = anguloIntermedio ;
+            //camaraInterna.RotationY = anguloIntermedio ;
             currentRot = directionXZ + directionYZ;
 
             Ship.Move(movement);
@@ -400,6 +406,13 @@ namespace TGC.Group.Model
             playerStats.Color = Color.Yellow;
             playerStats.changeFont(new Font(FontFamily.GenericMonospace, 14, FontStyle.Italic));
 
+            // Transformaciones
+            Ship.Transform = TGCMatrix.Scaling(Ship.Scale) * TGCMatrix.RotationYawPitchRoll(Ship.Rotation.Y, Ship.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(Ship.Position);
+            godBox.Transform = TGCMatrix.Scaling(godBox.Scale) * TGCMatrix.RotationYawPitchRoll(godBox.Rotation.Y, godBox.Rotation.X, godBox.Rotation.Z) * TGCMatrix.Translation(godBox.Position);
+            ShortPowerBox.Transform = TGCMatrix.Scaling(ShortPowerBox.Scale) * TGCMatrix.RotationYawPitchRoll(ShortPowerBox.Rotation.Y, ShortPowerBox.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(ShortPowerBox.Position);
+            test_hit.Transform = TGCMatrix.Scaling(test_hit.Scale) * TGCMatrix.RotationYawPitchRoll(test_hit.Rotation.Y, test_hit.Rotation.X, test_hit.Rotation.Z) * TGCMatrix.Translation(test_hit.Position);
+
+
             PostUpdate();
         }
 
@@ -420,18 +433,15 @@ namespace TGC.Group.Model
             stringFormat.LineAlignment = StringAlignment.Center;  // Vertical Alignment
 
 
-            // Transformaciones
-            Ship.Transform = TGCMatrix.Scaling(Ship.Scale) * TGCMatrix.RotationYawPitchRoll(Ship.Rotation.Y, Ship.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(Ship.Position);
-            godBox.Transform = TGCMatrix.Scaling(godBox.Scale) * TGCMatrix.RotationYawPitchRoll(godBox.Rotation.Y, godBox.Rotation.X, godBox.Rotation.Z) * TGCMatrix.Translation(godBox.Position);
-            ShortPowerBox.Transform = TGCMatrix.Scaling(ShortPowerBox.Scale) * TGCMatrix.RotationYawPitchRoll(ShortPowerBox.Rotation.Y, ShortPowerBox.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(ShortPowerBox.Position);
-            test_hit.Transform = TGCMatrix.Scaling(test_hit.Scale) * TGCMatrix.RotationYawPitchRoll(test_hit.Rotation.Y, test_hit.Rotation.X, test_hit.Rotation.Z) * TGCMatrix.Translation(test_hit.Position);
-
+            
 
             // Renders
             skyBox.Render();
             Ship.Render();
+            path01.Render();
             track01.Render();
-            pCube1.Render();
+            path02.Render();
+            track02.Render();
             pSphere1.Render();
             pSphere3.Render();
             pSphere2.Render(); 
@@ -449,7 +459,7 @@ namespace TGC.Group.Model
             }
 
             // Posición de cámaras
-            camaraInterna.Target = Ship.Position + new TGCVector3(0, 0, 15);
+            camaraInterna.Target = Ship.Position;
             godCamera.Target = godBox.Position;
 
             PostRender();
@@ -511,7 +521,7 @@ namespace TGC.Group.Model
             else
             {
                 new_target = current_target;
-                addVertexCollection(track01.getVertexPositions(), new TGCVector3(0, 0, 0));
+                addVertexCollection(path01.getVertexPositions(), new TGCVector3(0, 0, 0));
             }
             target = new_target;
 

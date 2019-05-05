@@ -193,8 +193,8 @@ namespace TGC.Group.Model
 
             concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track01-TgcScene.xml").Meshes[0],
                 loader.loadSceneFromFile(MediaDir + "Test\\path01-TgcScene.xml").Meshes[0]);
-            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track02-TgcScene.xml").Meshes[0],
-                loader.loadSceneFromFile(MediaDir + "Test\\path02-TgcScene.xml").Meshes[0]);
+            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track01-TgcScene.xml").Meshes[0],
+                loader.loadSceneFromFile(MediaDir + "Test\\path01-TgcScene.xml").Meshes[0]);
 
             target = findNextTarget(vertex_pool);
 
@@ -388,9 +388,22 @@ namespace TGC.Group.Model
 
             float angleXZ = 0;
             float angleYZ = 0;
-            TGCVector3 directionXZ = TGCVector3.Normalize(new TGCVector3(target.X, 0, target.Z) - new TGCVector3(Ship.Position.X, 0, Ship.Position.Z));
-            TGCVector3 directionYZ = TGCVector3.Normalize(new TGCVector3(0, target.Y, target.Z) - new TGCVector3(0, Ship.Position.Y, Ship.Position.Z));
 
+            TGCVector3 vectorA = new TGCVector3(target.X, 0, target.Z) - new TGCVector3(Ship.Position.X, 0, Ship.Position.Z);
+            TGCVector3 vectorB = new TGCVector3(0, target.Y, target.Z) - new TGCVector3(0, Ship.Position.Y, Ship.Position.Z);
+
+            TGCVector3 directionXZ = TGCVector3.Empty;
+            TGCVector3 directionYZ = TGCVector3.Empty;
+
+            if(vectorA.Length() != 0)
+            {
+                directionXZ = TGCVector3.Normalize(vectorA);
+            }
+            if(vectorB.Length() != 0)
+            {
+                directionYZ = TGCVector3.Normalize(vectorB);
+            }
+            
             angleXZ = -FastMath.Acos(TGCVector3.Dot(originalRot, directionXZ));
             angleYZ = -FastMath.Acos(TGCVector3.Dot(originalRot, directionYZ));
             if (directionXZ.X > 0)
@@ -401,19 +414,30 @@ namespace TGC.Group.Model
             {
                 angleYZ *= -1;
             }
+            if(!float.IsNaN(angleXZ) && !float.IsNaN(angleYZ))
+            {
+                float orRotY = Ship.Rotation.Y;
+                float angIntY = orRotY * (1.0f - 0.1f) + angleXZ * 0.1f;
 
-            float orRotY = Ship.Rotation.Y;
-            float angIntY = orRotY * (1.0f - 0.1f) + angleXZ * 0.1f;
+                float orRotX = Ship.Rotation.X;
+                float angIntX = orRotX * (1.0f - 0.1f) + angleYZ * 0.1f;
 
-            float orRotX = Ship.Rotation.X;
-            float angIntX = orRotX * (1.0f - 0.1f) + angleYZ * 0.1f;
+                Ship.Rotation = new TGCVector3(angIntX, angIntY, 0);
 
-            //Ship.Rotation = new TGCVector3(angleYZ, angIntY, 0);
+                float originalRotationY = camaraInterna.RotationY;
+                float anguloIntermedio = originalRotationY * (1.0f - 0.03f) + angleXZ * 0.03f;
+                //camaraInterna.RotationY = anguloIntermedio ;
+                currentRot = directionXZ + directionYZ;
+            }
+            
 
-            float originalRotationY = camaraInterna.RotationY;
-            float anguloIntermedio = originalRotationY * (1.0f - 0.03f) + angleXZ * 0.03f;
-            //camaraInterna.RotationY = anguloIntermedio ;
-            currentRot = directionXZ + directionYZ;
+            System.Diagnostics.Debug.WriteLine("DANIEEEEEEEEEEEEEL");
+            System.Diagnostics.Debug.WriteLine(angleXZ + "," + angleYZ);
+            System.Diagnostics.Debug.WriteLine(TGCVector3.Dot(originalRot, directionXZ) + "," + TGCVector3.Dot(originalRot, directionYZ));
+            System.Diagnostics.Debug.WriteLine(originalRot);
+            System.Diagnostics.Debug.WriteLine(directionXZ + "," + directionYZ);
+
+            
 
             Ship.Move(movement);
 

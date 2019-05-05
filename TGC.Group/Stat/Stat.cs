@@ -33,6 +33,10 @@ namespace TGC.Group.Stats
         public void addPoints(int pointsToAdd)
         {
             totalPoints += pointsToAdd * totalMultiply;
+            if (totalPoints < 0)
+            {
+                totalPoints = 0;
+            }
         }
     }
 }

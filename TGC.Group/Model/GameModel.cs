@@ -12,6 +12,7 @@ using TGC.Group.Camara;
 using TGC.Core.Terrain;
 using TGC.Core.Collision;
 using TGC.Core.Text;
+using TGC.Core.Sound;
 using TGC.Group.Stats;
 using System.Collections.Generic;
 
@@ -46,6 +47,7 @@ namespace TGC.Group.Model
 
         //PowerBoxes
         private List<TGCBox> power_boxes;
+        private List<Boolean> power_boxes_states;
 
         //GodBox
         private TGCBox godBox { get; set; }
@@ -82,6 +84,10 @@ namespace TGC.Group.Model
         */
         //private TgcRotationalCamera godCamera;
         private TgcThirdPersonCamera godCamera;
+
+        // Music
+        private TgcMp3Player mp3Player;
+        String path;
 
         // Variables varias
         private const float MOVEMENT_SPEED = 12f;
@@ -124,6 +130,7 @@ namespace TGC.Group.Model
             tracks = new List<TgcMesh>();
             paths = new List<TgcMesh>();
             power_boxes = new List<TGCBox>();
+            power_boxes_states = new List<Boolean>();
 
             vertex_pool = new List<TGCVector3>();
             permanent_pool = new List<TGCVector3>();
@@ -214,12 +221,33 @@ namespace TGC.Group.Model
             skyBox.SkyEpsilon = 25f;
             skyBox.Init();
 
-            
+            // Music
+            path = MediaDir + "Music\\hz-circle.mp3";
+            mp3Player = new TgcMp3Player();
+            mp3Player.FileName = path;
+            mp3Player.play(true);
+            mp3Player.pause();
+
+
         }
 
         public override void Update()
         {
             PreUpdate();
+
+           if (Input.keyPressed(Key.M))
+            {
+                if (mp3Player.getStatus() == TgcMp3Player.States.Playing)
+                {
+                    //Pausar el MP3
+                    mp3Player.pause();
+                } else if(mp3Player.getStatus() == TgcMp3Player.States.Paused)
+                {
+                    //Resumir la ejecución del MP3
+                    mp3Player.resume();
+                }
+            }
+
 
             float rotate = 0;
 
@@ -237,34 +265,40 @@ namespace TGC.Group.Model
                     D3DDevice.Instance.ZNearPlaneDistance, D3DDevice.Instance.ZFarPlaneDistance * 2f).ToMatrix();
 
             // Detectar colisión entre la nave (Ship) y un poder corto (ShortPowerBox)
-            for(int a=0; a<power_boxes.Count; a++)
+            if (Input.keyPressed(Key.Space))
             {
-                TGCBox ShortPowerBox = power_boxes[a];
-                if (TgcCollisionUtils.testAABBAABB(Ship.BoundingBox, ShortPowerBox.BoundingBox))
+                int noTouching = 0;
+                for (int a = 0; a < power_boxes.Count; a++)
                 {
-                    ShortPowerBox.Color = Color.Yellow;
-                    ShortPowerBox.updateValues();
-                    if (Input.keyPressed(Key.Space))
+                    TGCBox ShortPowerBox = power_boxes[a];
+                    if (TgcCollisionUtils.testAABBAABB(Ship.BoundingBox, power_boxes[a].BoundingBox))
                     {
-                        ShortPowerBox.Color = Color.Red;
-                        ShortPowerBox.updateValues();
-                        stat.addMultiply();
-                        stat.addPoints(10);
+                        //power_boxes[a].Color = Color.Yellow;
+                        //power_boxes[a].updateValues();
+                        power_boxes[a].Color = Color.Red;
+                        power_boxes[a].updateValues();
+                        if (!power_boxes_states[a])
+                        {
+                            power_boxes_states[a] = true;
+                            stat.addMultiply();
+                            stat.addPoints(10);
+                        }
+                    }
+                    else
+                    {
+                        noTouching++;
+                        power_boxes[a].Color = Color.White;
+                        power_boxes[a].updateValues();
                     }
                 }
-                else
+                if (noTouching == power_boxes.Count)
                 {
-                    if (Input.keyPressed(Key.Space))
-                    {
-                        ShortPowerBox.Color = Color.Red;
-                        ShortPowerBox.updateValues();
-                        stat.cancelMultiply();
-                        stat.addPoints(-10);
-                    }
+
+                    stat.cancelMultiply();
+                    stat.addPoints(-10);
                 }
-                ShortPowerBox.Color = Color.White;
-                ShortPowerBox.updateValues();
-            }            
+            }
+                   
 
             // Activar bounding box
             if (Input.keyPressed(Key.F))
@@ -390,7 +424,7 @@ namespace TGC.Group.Model
 
             // Texto de currentCamera
             currentCamera = new TgcText2D();
-            currentCamera.Text = "CAMBIAR CÁMARA CON TAB";
+            currentCamera.Text = "CAMBIAR CÁMARA CON TAB / MUSICA CON M";
             currentCamera.Align = TgcText2D.TextAlign.CENTER;
             currentCamera.Color = Color.Yellow;
             currentCamera.changeFont(new Font(FontFamily.GenericMonospace, 14, FontStyle.Italic));
@@ -433,8 +467,6 @@ namespace TGC.Group.Model
             StringFormat stringFormat = new StringFormat();
             stringFormat.Alignment = StringAlignment.Center;      // Horizontal Alignment
             stringFormat.LineAlignment = StringAlignment.Center;  // Vertical Alignment
-
-
             
 
             // Renders
@@ -590,11 +622,13 @@ namespace TGC.Group.Model
             powerbox.Transform = TGCMatrix.Identity;
 
             power_boxes.Add(powerbox);
+            power_boxes_states.Add(false);
         }
 
         public override void Dispose()
         {
             Ship.Dispose();
+            mp3Player.closeFile();
             for (int a = 0; a < power_boxes.Count; a++)
             {
                 power_boxes[a].Dispose();

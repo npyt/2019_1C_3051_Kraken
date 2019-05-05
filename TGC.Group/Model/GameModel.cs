@@ -195,6 +195,7 @@ namespace TGC.Group.Model
                 loader.loadSceneFromFile(MediaDir + "Test\\path01-TgcScene.xml").Meshes[0]);
             concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track01-TgcScene.xml").Meshes[0],
                 loader.loadSceneFromFile(MediaDir + "Test\\path01-TgcScene.xml").Meshes[0]);
+            
 
             target = findNextTarget(vertex_pool);
 

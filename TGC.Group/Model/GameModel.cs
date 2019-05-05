@@ -45,7 +45,7 @@ namespace TGC.Group.Model
         private List<TgcMesh> paths;
 
         //PowerBoxes
-        private TGCBox ShortPowerBox { get; set; }
+        private List<TGCBox> power_boxes;
 
         //GodBox
         private TGCBox godBox { get; set; }
@@ -123,6 +123,7 @@ namespace TGC.Group.Model
         {
             tracks = new List<TgcMesh>();
             paths = new List<TgcMesh>();
+            power_boxes = new List<TGCBox>();
 
             vertex_pool = new List<TGCVector3>();
             permanent_pool = new List<TGCVector3>();
@@ -142,25 +143,15 @@ namespace TGC.Group.Model
             test_hit.Transform = TGCMatrix.Identity;
 
             // Caja de prueba para poderes
-            var sizePowerShort = new TGCVector3(10, 2, 10);
-            ShortPowerBox = TGCBox.fromSize(sizePowerShort, texture);
-            ShortPowerBox.Position = new TGCVector3(0, 0, 0);
-            ShortPowerBox.Transform = TGCMatrix.Identity;
 
             // Caja god
             var sizeGodBox = new TGCVector3(10, 2, 10);
-            godBox = TGCBox.fromSize(sizePowerShort, texture);
+            godBox = TGCBox.fromSize(sizeGodBox, texture);
             godBox.Position = new TGCVector3(0, 0, 0);
             godBox.Transform = TGCMatrix.Identity;
 
             // Loader para los mesh
             var loader = new TgcSceneLoader();
-
-            // Track path
-            //paths.Add(loader.loadSceneFromFile(MediaDir + "Test\\path02-TgcScene.xml").Meshes[0]);
-
-            // Track model
-            //tracks.Add(loader.loadSceneFromFile(MediaDir + "Test\\track02-TgcScene.xml").Meshes[0]);
 
             // Nave
             Ship = loader.loadSceneFromFile(MediaDir + "Test\\ship_soft-TgcScene.xml").Meshes[0];
@@ -199,13 +190,17 @@ namespace TGC.Group.Model
                 loader.loadSceneFromFile(MediaDir + "Test\\path02-TgcScene.xml").Meshes[0]);
 
             target = findNextTarget(vertex_pool);
-            
+
+            addPowerBox();
+            addPowerBox();
+            addPowerBox();
+
 
             /*
              *Skybox TEST
              */
 
-             
+
             skyBox = new TgcSkyBox();
             skyBox.Center = TGCVector3.Empty;
             skyBox.Size = new TGCVector3(20000, 20000, 20000);
@@ -242,29 +237,34 @@ namespace TGC.Group.Model
                     D3DDevice.Instance.ZNearPlaneDistance, D3DDevice.Instance.ZFarPlaneDistance * 2f).ToMatrix();
 
             // Detectar colisión entre la nave (Ship) y un poder corto (ShortPowerBox)
-            if (TgcCollisionUtils.testAABBAABB(Ship.BoundingBox, ShortPowerBox.BoundingBox))
+            for(int a=0; a<power_boxes.Count; a++)
             {
-                ShortPowerBox.Color = Color.Yellow;
+                TGCBox ShortPowerBox = power_boxes[a];
+                if (TgcCollisionUtils.testAABBAABB(Ship.BoundingBox, ShortPowerBox.BoundingBox))
+                {
+                    ShortPowerBox.Color = Color.Yellow;
+                    ShortPowerBox.updateValues();
+                    if (Input.keyPressed(Key.Space))
+                    {
+                        ShortPowerBox.Color = Color.Red;
+                        ShortPowerBox.updateValues();
+                        stat.addMultiply();
+                        stat.addPoints(10);
+                    }
+                }
+                else
+                {
+                    if (Input.keyPressed(Key.Space))
+                    {
+                        ShortPowerBox.Color = Color.Red;
+                        ShortPowerBox.updateValues();
+                        stat.cancelMultiply();
+                        stat.addPoints(-10);
+                    }
+                }
+                ShortPowerBox.Color = Color.White;
                 ShortPowerBox.updateValues();
-                if (Input.keyPressed(Key.Space))
-                {
-                    ShortPowerBox.Color = Color.Red;
-                    ShortPowerBox.updateValues();
-                    stat.addMultiply();
-                    stat.addPoints(10);
-                }
-            }else
-            {
-                if (Input.keyPressed(Key.Space))
-                {
-                    ShortPowerBox.Color = Color.Red;
-                    ShortPowerBox.updateValues();
-                    stat.cancelMultiply();
-                    stat.addPoints(-10);
-                }
-            }
-            ShortPowerBox.Color = Color.White;
-            ShortPowerBox.updateValues();
+            }            
 
             // Activar bounding box
             if (Input.keyPressed(Key.F))
@@ -407,7 +407,12 @@ namespace TGC.Group.Model
             // Transformaciones
             Ship.Transform = TGCMatrix.Scaling(Ship.Scale) * TGCMatrix.RotationYawPitchRoll(Ship.Rotation.Y, Ship.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(Ship.Position);
             godBox.Transform = TGCMatrix.Scaling(godBox.Scale) * TGCMatrix.RotationYawPitchRoll(godBox.Rotation.Y, godBox.Rotation.X, godBox.Rotation.Z) * TGCMatrix.Translation(godBox.Position);
-            ShortPowerBox.Transform = TGCMatrix.Scaling(ShortPowerBox.Scale) * TGCMatrix.RotationYawPitchRoll(ShortPowerBox.Rotation.Y, ShortPowerBox.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(ShortPowerBox.Position);
+
+            for (int a = 0; a < power_boxes.Count; a++)
+            {
+                TGCBox ShortPowerBox = power_boxes[a];
+                ShortPowerBox.Transform = TGCMatrix.Scaling(ShortPowerBox.Scale) * TGCMatrix.RotationYawPitchRoll(ShortPowerBox.Rotation.Y, ShortPowerBox.Rotation.X, ShortPowerBox.Rotation.Z) * TGCMatrix.Translation(ShortPowerBox.Position);
+            }
             test_hit.Transform = TGCMatrix.Scaling(test_hit.Scale) * TGCMatrix.RotationYawPitchRoll(test_hit.Rotation.Y, test_hit.Rotation.X, test_hit.Rotation.Z) * TGCMatrix.Translation(test_hit.Position);
 
 
@@ -421,7 +426,6 @@ namespace TGC.Group.Model
 
             // Especificaciones en pantalla: posición de la nave y de la cámara
             DrawText.drawText("Ship Position: \n" + Ship.Position, 5, 20, Color.Yellow);
-            DrawText.drawText("Power Position: \n " + ShortPowerBox.Position, 5, 90, Color.Yellow);
             DrawText.drawText("Camera Position: \n" + Camara.Position, 5, 160, Color.Yellow);
             DrawText.drawText("Medium Elapsed: \n" + medium_elapsed, 145, 20, Color.Yellow);
             DrawText.drawText("Elapsed: \n" + ElapsedTime, 145, 60, Color.Yellow);
@@ -443,16 +447,24 @@ namespace TGC.Group.Model
             pSphere1.Render();
             pSphere3.Render();
             pSphere2.Render(); 
-            godBox.Render();
+            //godBox.Render();
             currentCamera.render();
             playerStats.render();
             //pSphere4.Render();
-            //ShortPowerBox.Render();
-            test_hit.Render();
+            for (int a = 0; a < power_boxes.Count; a++)
+            {
+                TGCBox ShortPowerBox = power_boxes[a];
+                ShortPowerBox.Render();
+            }
             if (BoundingBox)
             {
                 Ship.BoundingBox.Render();
-                ShortPowerBox.BoundingBox.Render();
+
+                for (int a = 0; a < power_boxes.Count; a++)
+                {
+                    TGCBox ShortPowerBox = power_boxes[a];
+                    ShortPowerBox.BoundingBox.Render();
+                }
                 godBox.BoundingBox.Render();
             }
 
@@ -545,28 +557,18 @@ namespace TGC.Group.Model
         {
             TGCVector3 lastVertex = TGCVector3.Empty;
 
-            if(tracks.Count == 0)
+            if(tracks.Count != 0)
             {
-                track.Move(0, 0, 0);
-                tracks.Add(track);
-
-                path.Move(0, 0, 0);
-                paths.Add(path);
-
-                addVertexCollection(path.getVertexPositions(), new TGCVector3(0, 0, 0));
-
-                return;
-            }
-
-            lastVertex = vertex_pool[0];
-            for(int a=0; a<vertex_pool.Count; a++)
-            {
-                TGCVector3 thisvertex = vertex_pool[a];
-                if(thisvertex.Z >= lastVertex.Z)
+                lastVertex = vertex_pool[0];
+                for (int a = 0; a < vertex_pool.Count; a++)
                 {
-                    lastVertex = thisvertex;
+                    TGCVector3 thisvertex = vertex_pool[a];
+                    if (thisvertex.Z >= lastVertex.Z)
+                    {
+                        lastVertex = thisvertex;
+                    }
                 }
-            }
+            }            
 
             track.Move(lastVertex);
             tracks.Add(track);
@@ -577,10 +579,26 @@ namespace TGC.Group.Model
             addVertexCollection(path.getVertexPositions(), lastVertex);
         }
 
+        private void addPowerBox()
+        {
+            var pathTexturaCaja = MediaDir + Game.Default.TexturaCaja;
+            var texture = TgcTexture.createTexture(pathTexturaCaja);
+
+            var sizePowerBox = new TGCVector3(1, 15, 1);
+            TGCBox powerbox = TGCBox.fromSize(sizePowerBox, texture);
+            powerbox.Position = vertex_pool[(new Random(Guid.NewGuid().GetHashCode())).Next(vertex_pool.Count)];
+            powerbox.Transform = TGCMatrix.Identity;
+
+            power_boxes.Add(powerbox);
+        }
+
         public override void Dispose()
         {
             Ship.Dispose();
-            ShortPowerBox.Dispose();
+            for (int a = 0; a < power_boxes.Count; a++)
+            {
+                power_boxes[a].Dispose();
+            }
         }
     }
 }

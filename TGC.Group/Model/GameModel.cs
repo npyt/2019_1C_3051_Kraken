@@ -52,6 +52,9 @@ namespace TGC.Group.Model
         //GodBox
         private TGCBox godBox { get; set; }
 
+        // SuperPowerBox
+        private TGCBox superPowerBox { get; set; }
+
         private TgcMesh ship_soft { get; set; }
         /*
          * Model Track01
@@ -93,7 +96,7 @@ namespace TGC.Group.Model
         private const float MOVEMENT_SPEED = 12f;
         private const float VERTEX_MIN_DISTANCE = 0.3f;
 
-        TGCVector3 target;
+        TGCVector3 shipTarget;
         TGCVector3 previousTarget;
         private List<TGCVector3> vertex_pool;
         private List<TGCVector3> permanent_pool;
@@ -121,6 +124,8 @@ namespace TGC.Group.Model
 
         // SkyBox test
         private TgcSkyBox skyBox;
+
+        private bool superPowerStatus;
 
 
         Stat stat = new Stat("PLAYER");
@@ -189,20 +194,28 @@ namespace TGC.Group.Model
             godCamera = new TgcThirdPersonCamera(godBox.Position, 60, -135);
             Camara = camaraInterna;
 
-            target = Ship.Position;
+            shipTarget = Ship.Position;
 
             concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track01-TgcScene.xml").Meshes[0],
                 loader.loadSceneFromFile(MediaDir + "Test\\path01-TgcScene.xml").Meshes[0]);
             concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track01-TgcScene.xml").Meshes[0],
                 loader.loadSceneFromFile(MediaDir + "Test\\path01-TgcScene.xml").Meshes[0]);
-            
 
-            target = findNextTarget(vertex_pool);
+
+            shipTarget = findNextTarget(vertex_pool);
 
             addPowerBox();
             addPowerBox();
             addPowerBox();
 
+            // SuperPower
+            var sizeSuperPower = new TGCVector3(25, 2, 2);
+            superPowerBox = TGCBox.fromSize(sizeSuperPower, texture);
+            superPowerBox.Color = Color.White;
+            superPowerBox.updateValues();
+            superPowerBox.Position = new TGCVector3(0, 0, 0);
+            superPowerBox.Transform = TGCMatrix.Identity;
+            superPowerStatus = false;
 
             /*
              *Skybox TEST
@@ -320,6 +333,45 @@ namespace TGC.Group.Model
                 };
             }
 
+
+            // SuperPower
+       
+            if (Input.keyPressed(Key.RightShift))
+            {
+                superPowerStatus = true;
+                superPowerBox.Position = Ship.Position;
+            }
+
+            if (superPowerStatus)
+            {
+
+                var superPowerMovement = TGCVector3.Empty;
+                var superPowerOriginalPos = Ship.Position;
+
+                superPowerMovement = shipTarget;
+                superPowerMovement.Subtract(superPowerOriginalPos);
+
+                if (superPowerMovement.Length() < (MOVEMENT_SPEED * 3 * ElapsedTime))
+                {
+                    superPowerMovement = shipTarget;
+                    superPowerMovement.Subtract(superPowerOriginalPos);
+                }
+
+                else
+                {
+                    superPowerMovement.Normalize();
+                    superPowerMovement.Multiply(MOVEMENT_SPEED * 3 * ElapsedTime);
+
+                }
+                //test_hit.Position = getPositionAtMiliseconds(1000);
+                if (superPowerMovement.Length() < (MOVEMENT_SPEED * ElapsedTime) / 2)
+                {
+                    shipTarget = findNextTarget(vertex_pool);
+                }
+
+                superPowerBox.Move(superPowerMovement);
+            }
+
             // Movimiento de la godCamera
             var movementGod = TGCVector3.Empty;
             float moveForward = 0;
@@ -364,34 +416,34 @@ namespace TGC.Group.Model
             godBox.Move(movementGod);
 
             // Movimiento de la nave (Ship)
-            var movement = TGCVector3.Empty;
-            var originalPos = Ship.Position;
-            
-            movement = target;
-            movement.Subtract(originalPos);
+            var shipMovement = TGCVector3.Empty;
+            var shipOriginalPos = Ship.Position;
 
-            if (movement.Length() < (MOVEMENT_SPEED * ElapsedTime))
+            shipMovement = shipTarget;
+            shipMovement.Subtract(shipOriginalPos);
+
+            if (shipMovement.Length() < (MOVEMENT_SPEED * ElapsedTime))
             {
-                movement = target;
-                movement.Subtract(originalPos);
+                shipMovement = shipTarget;
+                shipMovement.Subtract(shipOriginalPos);
             }
             else
             {
-                movement.Normalize();
-                movement.Multiply(MOVEMENT_SPEED * ElapsedTime);
+                shipMovement.Normalize();
+                shipMovement.Multiply(MOVEMENT_SPEED * ElapsedTime);
 
             }
             //test_hit.Position = getPositionAtMiliseconds(1000);
-            if (movement.Length() < (MOVEMENT_SPEED * ElapsedTime) / 2)
+            if (shipMovement.Length() < (MOVEMENT_SPEED * ElapsedTime) / 2)
             {
-                target = findNextTarget(vertex_pool);
+                shipTarget = findNextTarget(vertex_pool);
             }
 
             float angleXZ = 0;
             float angleYZ = 0;
 
-            TGCVector3 vectorA = new TGCVector3(target.X, 0, target.Z) - new TGCVector3(Ship.Position.X, 0, Ship.Position.Z);
-            TGCVector3 vectorB = new TGCVector3(0, target.Y, target.Z) - new TGCVector3(0, Ship.Position.Y, Ship.Position.Z);
+            TGCVector3 vectorA = new TGCVector3(shipTarget.X, 0, shipTarget.Z) - new TGCVector3(Ship.Position.X, 0, Ship.Position.Z);
+            TGCVector3 vectorB = new TGCVector3(0, shipTarget.Y, shipTarget.Z) - new TGCVector3(0, Ship.Position.Y, Ship.Position.Z);
 
             TGCVector3 directionXZ = TGCVector3.Empty;
             TGCVector3 directionYZ = TGCVector3.Empty;
@@ -440,7 +492,7 @@ namespace TGC.Group.Model
 
             
 
-            Ship.Move(movement);
+            Ship.Move(shipMovement);
 
             /* // Screen size 
             int ScreenWidth = System.Windows.Forms.Screen.PrimaryScreen.Bounds.Width;
@@ -466,6 +518,7 @@ namespace TGC.Group.Model
             // Transformaciones
             Ship.Transform = TGCMatrix.Scaling(Ship.Scale) * TGCMatrix.RotationYawPitchRoll(Ship.Rotation.Y, Ship.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(Ship.Position);
             godBox.Transform = TGCMatrix.Scaling(godBox.Scale) * TGCMatrix.RotationYawPitchRoll(godBox.Rotation.Y, godBox.Rotation.X, godBox.Rotation.Z) * TGCMatrix.Translation(godBox.Position);
+            superPowerBox.Transform = TGCMatrix.Scaling(superPowerBox.Scale) * TGCMatrix.RotationYawPitchRoll(superPowerBox.Rotation.Y, superPowerBox.Rotation.X, superPowerBox.Rotation.Z) * TGCMatrix.Translation(superPowerBox.Position);
 
             for (int a = 0; a < power_boxes.Count; a++)
             {
@@ -525,6 +578,8 @@ namespace TGC.Group.Model
                 godBox.BoundingBox.Render();
             }
 
+            superPowerBox.Render();
+
             // Posición de cámaras
             camaraInterna.Target = Ship.Position;
             godCamera.Target = godBox.Position;
@@ -559,8 +614,8 @@ namespace TGC.Group.Model
        
         public TGCVector3 findNextTarget(List<TGCVector3> pool)
         {
-            TGCVector3 current_target = target;
-            pool.Remove(target);
+            TGCVector3 current_target = shipTarget;
+            pool.Remove(shipTarget);
 
             float distance = -1f;
             TGCVector3 new_target = new TGCVector3();
@@ -589,9 +644,9 @@ namespace TGC.Group.Model
             {
                 new_target = current_target;
             }
-            target = new_target;
+            shipTarget = new_target;
 
-            return target;
+            return shipTarget;
         }
 
         public TGCVector3 getPositionAtMiliseconds(float miliseconds)
@@ -602,11 +657,11 @@ namespace TGC.Group.Model
             }
 
             List<TGCVector3> mypool = new List<TGCVector3>(permanent_pool);
-            TGCVector3 originalTarget = target;
+            TGCVector3 originalTarget = shipTarget;
             TGCVector3 simulated_ship_position = TGCVector3.Empty;
 
 
-            target = originalTarget;
+            shipTarget = originalTarget;
             return simulated_ship_position;
         }
 

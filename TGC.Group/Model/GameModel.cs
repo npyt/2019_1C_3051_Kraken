@@ -26,7 +26,6 @@ namespace TGC.Group.Model
     /// </summary>
     public class GameModel : TgcExample
     {
-
         /// <summary>
         ///     Constructor del juego.
         /// </summary>
@@ -42,57 +41,41 @@ namespace TGC.Group.Model
         // Nave principal
         private TgcMesh Ship { get; set; }
 
-        // path01 path
+        // Lista de paths
         private List<TgcMesh> paths;
 
-        //PowerBoxes
+        // PowerBoxes
         private List<TGCBox> power_boxes;
         private List<Boolean> power_boxes_states;
 
-        //GodBox
+        // GodBox (box para la camara god)
         private TGCBox godBox { get; set; }
 
         // SuperPowerBox
         private TGCBox superPowerBox { get; set; }
+        private bool superPowerStatus;
 
-        private TgcMesh ship_soft { get; set; }
-        /*
-         * Model Track01
-         */
+        // Lista de tracks
         private List<TgcMesh> tracks;
-        /*
-         * Earth
-         */
-        private TgcMesh pSphere1 { get; set; }
-        /*
-         * Sun
-         */
-        private TgcMesh pSphere3 { get; set; }
-        /*
-         * Mars
-         */
-        private TgcMesh pSphere2 { get; set; }
-        /*
-         * Sky
-         */
-        private TgcMesh pSphere4 { get; set; }
+        
+        // Mesh: tierra
+        private TgcMesh mTierra { get; set; }
+        // Mesh: sol
+        private TgcMesh mSol { get; set; }
+        // Mesh: marte
+        private TgcMesh mMarte { get; set; }
 
-        /*
-         * Camara en tercera persona
-         */
+        // Camara principal (tercera persona)
         private TgcThirdPersonCamera camaraInterna;
 
-        /*
-        * Camara god
-        */
-        //private TgcRotationalCamera godCamera;
+        // Cámara god (tercera persona)
         private TgcThirdPersonCamera godCamera;
 
-        // Music
+        // Musica
         private TgcMp3Player mp3Player;
         String path;
 
-        // Variables varias
+        // Movimiento y rotacion
         private const float MOVEMENT_SPEED = 12f;
         private const float VERTEX_MIN_DISTANCE = 0.3f;
 
@@ -104,34 +87,28 @@ namespace TGC.Group.Model
         float sum_elapsed = 0f;
         int counter_elapsed = 0;
         float medium_elapsed = 0f;
-        private float angle = 0;
 
         private TGCBox test_hit { get; set; }
 
         TGCVector3 currentRot;
         TGCVector3 originalRot;
 
-        /* 
-         * Variables test
-         */
-
+        // Textos 2D
         private TgcText2D currentCamera;
-
         private TgcText2D playerStats;
 
-        // Boundingbox test
+        // Boundingbox status
         private bool BoundingBox { get; set; }
 
-        // SkyBox test
+        // SkyBox
         private TgcSkyBox skyBox;
 
-        private bool superPowerStatus;
-
-
+        // Player creation
         Stat stat = new Stat("PLAYER");
 
         public override void Init()
         {
+            // Listas de tracks, paths y powerBoxes
             tracks = new List<TgcMesh>();
             paths = new List<TgcMesh>();
             power_boxes = new List<TGCBox>();
@@ -153,10 +130,8 @@ namespace TGC.Group.Model
             test_hit = TGCBox.fromSize(new TGCVector3(1, 1, 1), texture);
             test_hit.Position = new TGCVector3(0, 0, 0);
             test_hit.Transform = TGCMatrix.Identity;
-
-            // Caja de prueba para poderes
-
-            // Caja god
+            
+            // Caja god para la camara god
             var sizeGodBox = new TGCVector3(10, 2, 10);
             godBox = TGCBox.fromSize(sizeGodBox, texture);
             godBox.Position = new TGCVector3(0, 0, 0);
@@ -171,39 +146,39 @@ namespace TGC.Group.Model
             originalRot = new TGCVector3(0, 0, 1);
 
             // Tierra
-            pSphere1 = loader.loadSceneFromFile(MediaDir + "Test\\pSphere1-TgcScene.xml").Meshes[0];
-            pSphere1.Move(0, 0, 0);
+            mTierra = loader.loadSceneFromFile(MediaDir + "Test\\pSphere1-TgcScene.xml").Meshes[0];
+            mTierra.Move(0, 0, 0);
 
             // Sol
-            pSphere3 = loader.loadSceneFromFile(MediaDir + "Test\\pSphere3-TgcScene.xml").Meshes[0];
-            pSphere3.Move(0, 0, 0);
+            mSol = loader.loadSceneFromFile(MediaDir + "Test\\pSphere3-TgcScene.xml").Meshes[0];
+            mSol.Move(0, 0, 0);
 
             // Marte
-            pSphere2 = loader.loadSceneFromFile(MediaDir + "Test\\pSphere2-TgcScene.xml").Meshes[0];
-            pSphere2.Move(0, 0, 0);
+            mMarte = loader.loadSceneFromFile(MediaDir + "Test\\pSphere2-TgcScene.xml").Meshes[0];
+            mMarte.Move(0, 0, 0);
 
-            // Sky
-            pSphere4 = loader.loadSceneFromFile(MediaDir + "Test\\pSphere4-TgcScene.xml").Meshes[0];
-            pSphere4.Move(0, 0, 0);
-
-            // Cámara en tercera persona
+            // Camara a la ship
             camaraInterna = new TgcThirdPersonCamera(Ship.Position + new TGCVector3(0, 0, 15), 30, -55);
 
-            // GOD Camera
-            //godCamera = new TgcRotationalCamera(godBox.Position, godBox.Size.Length() * 6, Input);
+            // Camara god
             godCamera = new TgcThirdPersonCamera(godBox.Position, 60, -135);
+
+            // Seteo de camara principal
             Camara = camaraInterna;
-
+            
+            // Asignar target inicial a la ship
             shipTarget = Ship.Position;
-
+            
+            // Init de tracks
             concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track01-TgcScene.xml").Meshes[0],
                 loader.loadSceneFromFile(MediaDir + "Test\\path01-TgcScene.xml").Meshes[0]);
             concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track01-TgcScene.xml").Meshes[0],
                 loader.loadSceneFromFile(MediaDir + "Test\\path01-TgcScene.xml").Meshes[0]);
 
-
+            // Asignar proximo target de la nave
             shipTarget = findNextTarget(vertex_pool);
 
+            // Init de poderes
             addPowerBox();
             addPowerBox();
             addPowerBox();
@@ -216,12 +191,8 @@ namespace TGC.Group.Model
             superPowerBox.Position = new TGCVector3(0, 0, 0);
             superPowerBox.Transform = TGCMatrix.Identity;
             superPowerStatus = false;
-
-            /*
-             *Skybox TEST
-             */
-
-
+               
+            // SkyBox
             skyBox = new TgcSkyBox();
             skyBox.Center = TGCVector3.Empty;
             skyBox.Size = new TGCVector3(20000, 20000, 20000);
@@ -235,7 +206,7 @@ namespace TGC.Group.Model
             skyBox.SkyEpsilon = 25f;
             skyBox.Init();
 
-            // Music
+            // Musica
             path = MediaDir + "Music\\hz-circle.mp3";
             mp3Player = new TgcMp3Player();
             mp3Player.FileName = path;
@@ -249,6 +220,7 @@ namespace TGC.Group.Model
         {
             PreUpdate();
 
+            // Apretar M para activar musica
            if (Input.keyPressed(Key.M))
             {
                 if (mp3Player.getStatus() == TgcMp3Player.States.Playing)
@@ -278,7 +250,7 @@ namespace TGC.Group.Model
             D3DDevice.Instance.Device.Transform.Projection = TGCMatrix.PerspectiveFovLH(D3DDevice.Instance.FieldOfView, D3DDevice.Instance.AspectRatio,
                     D3DDevice.Instance.ZNearPlaneDistance, D3DDevice.Instance.ZFarPlaneDistance * 2f).ToMatrix();
 
-            // Detectar colisión entre la nave (Ship) y un poder corto (ShortPowerBox)
+            // Deteccion entre poderes y ship al apretar ESPACIO
             if (Input.keyPressed(Key.Space))
             {
                 int noTouching = 0;
@@ -312,15 +284,14 @@ namespace TGC.Group.Model
                     stat.addPoints(-10);
                 }
             }
-                   
 
-            // Activar bounding box
+            // Activar bounding box al presionar F
             if (Input.keyPressed(Key.F))
             {
                 BoundingBox = !BoundingBox;
             }
 
-            // Cambiar cámara
+            // Cambiar cámara al presionar TAB
             if (Input.keyPressed(Key.Tab))
             {
                 if (Camara.Equals(camaraInterna))
@@ -333,9 +304,7 @@ namespace TGC.Group.Model
                 };
             }
 
-
-            // SuperPower
-       
+            // SuperPower al presionar SHIFT DERECHO
             if (Input.keyPressed(Key.RightShift))
             {
                 superPowerStatus = true;
@@ -344,7 +313,6 @@ namespace TGC.Group.Model
 
             if (superPowerStatus)
             {
-
                 var superPowerMovement = TGCVector3.Empty;
                 var superPowerOriginalPos = Ship.Position;
 
@@ -355,9 +323,7 @@ namespace TGC.Group.Model
                 {
                     superPowerMovement = shipTarget;
                     superPowerMovement.Subtract(superPowerOriginalPos);
-                }
-
-                else
+                }else
                 {
                     superPowerMovement.Normalize();
                     superPowerMovement.Multiply(MOVEMENT_SPEED * 3 * ElapsedTime);
@@ -368,11 +334,10 @@ namespace TGC.Group.Model
                 {
                     shipTarget = findNextTarget(vertex_pool);
                 }
-
                 superPowerBox.Move(superPowerMovement);
             }
 
-            // Movimiento de la godCamera
+            // Movimiento de la godCamera con W A S D ESPACIO C
             var movementGod = TGCVector3.Empty;
             float moveForward = 0;
 
@@ -439,6 +404,7 @@ namespace TGC.Group.Model
                 shipTarget = findNextTarget(vertex_pool);
             }
 
+            // Rotacion de la camara junto a la Ship por el camino
             float angleXZ = 0;
             float angleYZ = 0;
 
@@ -483,29 +449,23 @@ namespace TGC.Group.Model
                 currentRot = directionXZ + directionYZ;
             }
             
-
+            // Test console de angulos
             System.Diagnostics.Debug.WriteLine("DANIEEEEEEEEEEEEEL");
             System.Diagnostics.Debug.WriteLine(angleXZ + "," + angleYZ);
             System.Diagnostics.Debug.WriteLine(TGCVector3.Dot(originalRot, directionXZ) + "," + TGCVector3.Dot(originalRot, directionYZ));
             System.Diagnostics.Debug.WriteLine(originalRot);
             System.Diagnostics.Debug.WriteLine(directionXZ + "," + directionYZ);
 
-            
-
             Ship.Move(shipMovement);
 
-            /* // Screen size 
-            int ScreenWidth = System.Windows.Forms.Screen.PrimaryScreen.Bounds.Width;
-            int ScreenHeight = System.Windows.Forms.Screen.PrimaryScreen.Bounds.Height;
-            */
-
-            // Texto de currentCamera
+            // Texto informativo de botones
             currentCamera = new TgcText2D();
-            currentCamera.Text = "CAMBIAR CÁMARA CON TAB / MUSICA CON M";
+            currentCamera.Text = "CÁMARA: TAB / MUSICA: M / NOTAS: ESPACIO / SUPERPODER: RIGHT SHIFT";
             currentCamera.Align = TgcText2D.TextAlign.CENTER;
             currentCamera.Color = Color.Yellow;
             currentCamera.changeFont(new Font(FontFamily.GenericMonospace, 14, FontStyle.Italic));
 
+            // Texto informativo del player
             playerStats = new TgcText2D();
             playerStats.Text = "PUNTAJE ACTUAL: " + stat.totalPoints + " MULTIPLICADOR ACTUAL: " + 
                 stat.totalMultiply + " MULTIPLICADOR PARCIAL: " + stat.partialMultiply;
@@ -545,7 +505,6 @@ namespace TGC.Group.Model
             StringFormat stringFormat = new StringFormat();
             stringFormat.Alignment = StringAlignment.Center;      // Horizontal Alignment
             stringFormat.LineAlignment = StringAlignment.Center;  // Vertical Alignment
-            
 
             // Renders
             skyBox.Render();
@@ -554,13 +513,11 @@ namespace TGC.Group.Model
             {
                 tracks[a].Render();
             }
-            pSphere1.Render();
-            pSphere3.Render();
-            pSphere2.Render(); 
-            //godBox.Render();
+            mTierra.Render();
+            mSol.Render();
+            mMarte.Render(); 
             currentCamera.render();
             playerStats.render();
-            //pSphere4.Render();
             for (int a = 0; a < power_boxes.Count; a++)
             {
                 TGCBox ShortPowerBox = power_boxes[a];
@@ -577,7 +534,6 @@ namespace TGC.Group.Model
                 }
                 godBox.BoundingBox.Render();
             }
-
             superPowerBox.Render();
 
             // Posición de cámaras

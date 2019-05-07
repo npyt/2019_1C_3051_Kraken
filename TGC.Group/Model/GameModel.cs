@@ -54,6 +54,7 @@ namespace TGC.Group.Model
         // SuperPowerBox
         private TGCBox superPowerBox { get; set; }
         private bool superPowerStatus;
+        private float superPowerTime;
 
         // Lista de tracks
         private List<TgcMesh> tracks;
@@ -142,8 +143,9 @@ namespace TGC.Group.Model
 
             // Nave
             Ship = loader.loadSceneFromFile(MediaDir + "Test\\ship_soft-TgcScene.xml").Meshes[0];
-            Ship.Move(0, 25, 0);
+            Ship.Move(0, 35, 0);
             originalRot = new TGCVector3(0, 0, 1);
+            currentRot = originalRot;
 
             // Tierra
             mTierra = loader.loadSceneFromFile(MediaDir + "Test\\pSphere1-TgcScene.xml").Meshes[0];
@@ -158,7 +160,7 @@ namespace TGC.Group.Model
             mMarte.Move(0, 0, 0);
 
             // Camara a la ship
-            camaraInterna = new TgcThirdPersonCamera(Ship.Position + new TGCVector3(0, 0, 15), 30, -55);
+            camaraInterna = new TgcThirdPersonCamera(Ship.Position, 30, -55);
 
             // Camara god
             godCamera = new TgcThirdPersonCamera(godBox.Position, 60, -135);
@@ -172,13 +174,19 @@ namespace TGC.Group.Model
             // Init de tracks
             concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track01-TgcScene.xml").Meshes[0],
                 loader.loadSceneFromFile(MediaDir + "Test\\path01-TgcScene.xml").Meshes[0]);
+            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track02-TgcScene.xml").Meshes[0],
+                loader.loadSceneFromFile(MediaDir + "Test\\path02-TgcScene.xml").Meshes[0]);
             concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track01-TgcScene.xml").Meshes[0],
                 loader.loadSceneFromFile(MediaDir + "Test\\path01-TgcScene.xml").Meshes[0]);
+            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track02-TgcScene.xml").Meshes[0],
+                loader.loadSceneFromFile(MediaDir + "Test\\path02-TgcScene.xml").Meshes[0]);
+
 
             // Asignar proximo target de la nave
             shipTarget = findNextTarget(vertex_pool);
 
             // Init de poderes
+            addPowerBox();
             addPowerBox();
             addPowerBox();
             addPowerBox();
@@ -188,9 +196,10 @@ namespace TGC.Group.Model
             superPowerBox = TGCBox.fromSize(sizeSuperPower, texture);
             superPowerBox.Color = Color.White;
             superPowerBox.updateValues();
-            superPowerBox.Position = new TGCVector3(0, 0, 0);
+            superPowerBox.Position = new TGCVector3(0, 0, -50);
             superPowerBox.Transform = TGCMatrix.Identity;
             superPowerStatus = false;
+            superPowerTime = 0;
                
             // SkyBox
             skyBox = new TgcSkyBox();
@@ -304,11 +313,15 @@ namespace TGC.Group.Model
                 };
             }
 
-            // SuperPower al presionar SHIFT DERECHO
+            // SuperPower al presionar SHIFT DERECHO cada 2 segundos
             if (Input.keyPressed(Key.RightShift))
             {
-                superPowerStatus = true;
-                superPowerBox.Position = Ship.Position;
+                if (sum_elapsed - superPowerTime > 3.0f || superPowerTime == 0)
+                {
+                    superPowerStatus = true;
+                    superPowerBox.Position = Ship.Position;
+                    superPowerTime = sum_elapsed;
+                }
             }
 
             if (superPowerStatus)
@@ -335,6 +348,11 @@ namespace TGC.Group.Model
                     shipTarget = findNextTarget(vertex_pool);
                 }
                 superPowerBox.Move(superPowerMovement);
+
+                if (sum_elapsed - superPowerTime > 2.7f)
+                {
+                    superPowerStatus = false;
+                }
             }
 
             // Movimiento de la godCamera con W A S D ESPACIO C
@@ -429,7 +447,7 @@ namespace TGC.Group.Model
             {
                 angleXZ *= -1;
             }
-            if (directionYZ.Y < 0)
+            if (directionYZ.Y <0)
             {
                 angleYZ *= -1;
             }
@@ -441,7 +459,7 @@ namespace TGC.Group.Model
                 float orRotX = Ship.Rotation.X;
                 float angIntX = orRotX * (1.0f - 0.1f) + angleYZ * 0.1f;
 
-                Ship.Rotation = new TGCVector3(angIntX, angIntY, 0);
+                Ship.Rotation = new TGCVector3(angIntX , angIntY , 0);
 
                 float originalRotationY = camaraInterna.RotationY;
                 float anguloIntermedio = originalRotationY * (1.0f - 0.03f) + angleXZ * 0.03f;
@@ -534,7 +552,10 @@ namespace TGC.Group.Model
                 }
                 godBox.BoundingBox.Render();
             }
-            superPowerBox.Render();
+            if (superPowerStatus)
+            {
+                superPowerBox.Render();
+            }
 
             // Posición de cámaras
             camaraInterna.Target = Ship.Position;
@@ -649,10 +670,10 @@ namespace TGC.Group.Model
 
         private void addPowerBox()
         {
-            var pathTexturaCaja = MediaDir + Game.Default.TexturaCaja;
+            var pathTexturaCaja = MediaDir + "Test\\Textures\\white_wall.jpg";
             var texture = TgcTexture.createTexture(pathTexturaCaja);
 
-            var sizePowerBox = new TGCVector3(1, 15, 1);
+            var sizePowerBox = new TGCVector3(15, 15, 1);
             TGCBox powerbox = TGCBox.fromSize(sizePowerBox, texture);
             powerbox.Position = vertex_pool[(new Random(Guid.NewGuid().GetHashCode())).Next(vertex_pool.Count)];
             powerbox.Transform = TGCMatrix.Identity;

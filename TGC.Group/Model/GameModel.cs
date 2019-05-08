@@ -55,6 +55,7 @@ namespace TGC.Group.Model
         private TGCBox superPowerBox { get; set; }
         private bool superPowerStatus;
         private float superPowerTime;
+        private const float SUPERPOWER_MOVEMENT_SPEED = 52f;
 
         // Lista de tracks
         private List<TgcMesh> tracks;
@@ -95,7 +96,7 @@ namespace TGC.Group.Model
         TGCVector3 originalRot;
 
         // Textos 2D
-        private TgcText2D currentCamera;
+        private TgcText2D tButtons;
         private TgcText2D playerStats;
 
         // Boundingbox status
@@ -143,7 +144,7 @@ namespace TGC.Group.Model
 
             // Nave
             Ship = loader.loadSceneFromFile(MediaDir + "Test\\ship_soft-TgcScene.xml").Meshes[0];
-            Ship.Move(0, 35, 0);
+            Ship.Move(0, 0, 0);
             originalRot = new TGCVector3(0, 0, 1);
             currentRot = originalRot;
 
@@ -160,7 +161,7 @@ namespace TGC.Group.Model
             mMarte.Move(0, 0, 0);
 
             // Camara a la ship
-            camaraInterna = new TgcThirdPersonCamera(Ship.Position, 30, -55);
+            camaraInterna = new TgcThirdPersonCamera(Ship.Position, 20, -55);
 
             // Camara god
             godCamera = new TgcThirdPersonCamera(godBox.Position, 60, -135);
@@ -181,7 +182,6 @@ namespace TGC.Group.Model
             concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track02-TgcScene.xml").Meshes[0],
                 loader.loadSceneFromFile(MediaDir + "Test\\path02-TgcScene.xml").Meshes[0]);
 
-
             // Asignar proximo target de la nave
             shipTarget = findNextTarget(vertex_pool);
 
@@ -194,7 +194,7 @@ namespace TGC.Group.Model
             // SuperPower
             var sizeSuperPower = new TGCVector3(25, 2, 2);
             superPowerBox = TGCBox.fromSize(sizeSuperPower, texture);
-            superPowerBox.Color = Color.White;
+            superPowerBox.Color = Color.Green;
             superPowerBox.updateValues();
             superPowerBox.Position = new TGCVector3(0, 0, -50);
             superPowerBox.Transform = TGCMatrix.Identity;
@@ -313,8 +313,8 @@ namespace TGC.Group.Model
                 };
             }
 
-            // SuperPower al presionar SHIFT DERECHO cada 2 segundos
-            if (Input.keyPressed(Key.RightShift))
+            // SuperPower al presionar SHIFT IZQUIERDO cada 2 segundos
+            if (Input.keyPressed(Key.LeftShift))
             {
                 if (sum_elapsed - superPowerTime > 3.0f || superPowerTime == 0)
                 {
@@ -332,18 +332,18 @@ namespace TGC.Group.Model
                 superPowerMovement = shipTarget;
                 superPowerMovement.Subtract(superPowerOriginalPos);
 
-                if (superPowerMovement.Length() < (MOVEMENT_SPEED * 3 * ElapsedTime))
+                if (superPowerMovement.Length() < (SUPERPOWER_MOVEMENT_SPEED * ElapsedTime))
                 {
                     superPowerMovement = shipTarget;
                     superPowerMovement.Subtract(superPowerOriginalPos);
                 }else
                 {
                     superPowerMovement.Normalize();
-                    superPowerMovement.Multiply(MOVEMENT_SPEED * 3 * ElapsedTime);
+                    superPowerMovement.Multiply(SUPERPOWER_MOVEMENT_SPEED * ElapsedTime);
 
                 }
                 //test_hit.Position = getPositionAtMiliseconds(1000);
-                if (superPowerMovement.Length() < (MOVEMENT_SPEED * ElapsedTime) / 2)
+                if (superPowerMovement.Length() < (SUPERPOWER_MOVEMENT_SPEED * ElapsedTime) / 2)
                 {
                     shipTarget = findNextTarget(vertex_pool);
                 }
@@ -426,8 +426,8 @@ namespace TGC.Group.Model
             float angleXZ = 0;
             float angleYZ = 0;
 
-            TGCVector3 vectorA = new TGCVector3(shipTarget.X, 0, shipTarget.Z) - new TGCVector3(Ship.Position.X, 0, Ship.Position.Z);
-            TGCVector3 vectorB = new TGCVector3(0, shipTarget.Y, shipTarget.Z) - new TGCVector3(0, Ship.Position.Y, Ship.Position.Z);
+            TGCVector3 vectorA = new TGCVector3(shipMovement.X, 0, shipMovement.Z);
+            TGCVector3 vectorB = new TGCVector3(0, shipMovement.Y, shipMovement.Z);
 
             TGCVector3 directionXZ = TGCVector3.Empty;
             TGCVector3 directionYZ = TGCVector3.Empty;
@@ -459,7 +459,7 @@ namespace TGC.Group.Model
                 float orRotX = Ship.Rotation.X;
                 float angIntX = orRotX * (1.0f - 0.1f) + angleYZ * 0.1f;
 
-                Ship.Rotation = new TGCVector3(angIntX , angIntY , 0);
+                //Ship.Rotation = new TGCVector3(angIntX , angIntY , 0);
 
                 float originalRotationY = camaraInterna.RotationY;
                 float anguloIntermedio = originalRotationY * (1.0f - 0.03f) + angleXZ * 0.03f;
@@ -477,21 +477,25 @@ namespace TGC.Group.Model
             Ship.Move(shipMovement);
 
             // Texto informativo de botones
-            currentCamera = new TgcText2D();
-            currentCamera.Text = "CÁMARA: TAB / MUSICA: M / NOTAS: ESPACIO / SUPERPODER: RIGHT SHIFT";
-            currentCamera.Align = TgcText2D.TextAlign.CENTER;
-            currentCamera.Color = Color.Yellow;
-            currentCamera.changeFont(new Font(FontFamily.GenericMonospace, 14, FontStyle.Italic));
+            tButtons = new TgcText2D();
+            tButtons.Text = "CÁMARA: TAB / MUSICA: M / NOTAS: ESPACIO / SUPERPODER: RIGHT SHIFT";
+            tButtons.Align = TgcText2D.TextAlign.CENTER;
+            tButtons.Color = Color.Yellow;
+            tButtons.Position = new Point(tButtons.Position.X, 10);
+            tButtons.changeFont(new Font("Arial", 15, FontStyle.Bold));
 
             // Texto informativo del player
             playerStats = new TgcText2D();
-            playerStats.Text = "PUNTAJE ACTUAL: " + stat.totalPoints + " MULTIPLICADOR ACTUAL: " + 
-                stat.totalMultiply + " MULTIPLICADOR PARCIAL: " + stat.partialMultiply;
+            playerStats.Text = 
+                "PUNTAJE ACTUAL: " + stat.totalPoints + 
+                " MULTIPLICADOR ACTUAL: " + stat.totalMultiply +
+                " MULTIPLICADOR PARCIAL: " + stat.partialMultiply + 
+                " SUPERPODER: " + ((!superPowerStatus) ? "TRUÉ" : "FALSE");
             playerStats.Size = new Size(280, 200);
             playerStats.Align = TgcText2D.TextAlign.LEFT;
             playerStats.Position = new Point(10, 320);
             playerStats.Color = Color.Yellow;
-            playerStats.changeFont(new Font(FontFamily.GenericMonospace, 14, FontStyle.Italic));
+            playerStats.changeFont(new Font("Arial", 14, FontStyle.Bold));
 
             // Transformaciones
             Ship.Transform = TGCMatrix.Scaling(Ship.Scale) * TGCMatrix.RotationYawPitchRoll(Ship.Rotation.Y, Ship.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(Ship.Position);
@@ -533,8 +537,8 @@ namespace TGC.Group.Model
             }
             mTierra.Render();
             mSol.Render();
-            mMarte.Render(); 
-            currentCamera.render();
+            mMarte.Render();
+            tButtons.render();
             playerStats.render();
             for (int a = 0; a < power_boxes.Count; a++)
             {

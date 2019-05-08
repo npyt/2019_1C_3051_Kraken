@@ -318,6 +318,7 @@ namespace TGC.Group.Model
             {
                 if (sum_elapsed - superPowerTime > 3.0f || superPowerTime == 0)
                 {
+                    stat.duplicatePoints();
                     superPowerStatus = true;
                     superPowerBox.Position = Ship.Position;
                     superPowerTime = sum_elapsed;

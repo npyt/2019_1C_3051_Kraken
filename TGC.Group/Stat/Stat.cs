@@ -24,6 +24,11 @@ namespace TGC.Group.Stats
             }
         }
 
+        public void duplicatePoints()
+        {
+            totalPoints = totalPoints * 2;
+        }
+
         public void cancelMultiply()
         {
             partialMultiply = 0;

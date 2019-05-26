@@ -14,6 +14,7 @@ using TGC.Core.Collision;
 using TGC.Core.Text;
 using TGC.Core.Sound;
 using TGC.Group.Stats;
+using TGC.Group.Core2d;
 using System.Collections.Generic;
 
 namespace TGC.Group.Model
@@ -98,6 +99,8 @@ namespace TGC.Group.Model
         // Textos 2D
         private TgcText2D tButtons;
         private TgcText2D playerStats;
+        private TgcText2D totalPoints;
+        private TgcText2D subPoints;
 
         // Boundingbox status
         private bool BoundingBox { get; set; }
@@ -108,8 +111,28 @@ namespace TGC.Group.Model
         // Player creation
         Stat stat = new Stat("PLAYER");
 
+        // GUI
+        private bool helpGUI;
+        private bool developerModeGUI;
+        private bool totalPointsGUI;
+        private float totalPointsGUItime;
+
+        private CustomSprite sprite;
+        private Drawer2D drawer2D;
+        private bool penalty;
+        private float penaltyTime;
+
         public override void Init()
         {
+            // GUI
+
+            helpGUI = true;
+            developerModeGUI = false;
+            totalPointsGUI = false;
+
+            drawer2D = new Drawer2D();
+            penalty = false;
+
             // Listas de tracks, paths y powerBoxes
             tracks = new List<TgcMesh>();
             paths = new List<TgcMesh>();
@@ -222,15 +245,19 @@ namespace TGC.Group.Model
             mp3Player.play(true);
             mp3Player.pause();
 
+            // GUI
+            
+
 
         }
 
         public override void Update()
         {
             PreUpdate();
+            
 
             // Apretar M para activar musica
-           if (Input.keyPressed(Key.M))
+            if (Input.keyPressed(Key.M))
             {
                 if (mp3Player.getStatus() == TgcMp3Player.States.Playing)
                 {
@@ -277,12 +304,14 @@ namespace TGC.Group.Model
                             power_boxes_states[a] = true;
                             stat.addMultiply();
                             stat.addPoints(10);
+
+                            totalPointsGUI = true;
+                            totalPointsGUItime = sum_elapsed;
                         }
                     }
                     else
                     {
                         noTouching++;
-                        power_boxes[a].Color = Color.White;
                         power_boxes[a].updateValues();
                     }
                 }
@@ -290,7 +319,32 @@ namespace TGC.Group.Model
                 {
 
                     stat.cancelMultiply();
+                    if (stat.totalPoints != 0)
+                    {
+                        penalty = true;
+                        totalPointsGUI = true;
+                        
+                    }
                     stat.addPoints(-10);
+
+                    totalPointsGUItime = sum_elapsed;
+                    penaltyTime = sum_elapsed;
+                }
+            }
+
+            if (penalty)
+            {
+                if (sum_elapsed - penaltyTime > 0.5f)
+                {
+                    penalty = false;
+                }
+            }
+
+            if (totalPointsGUI)
+            {
+                if (sum_elapsed - totalPointsGUItime > 1f)
+                {
+                    totalPointsGUI = false;
                 }
             }
 
@@ -325,6 +379,16 @@ namespace TGC.Group.Model
                 }
             }
 
+            if (Input.keyPressed(Key.H))
+            {
+                helpGUI = !helpGUI;
+            }
+
+            if (Input.keyPressed(Key.K))
+            {
+                developerModeGUI = !developerModeGUI;
+                helpGUI = false;
+            }
             if (superPowerStatus)
             {
                 var superPowerMovement = TGCVector3.Empty;
@@ -476,27 +540,44 @@ namespace TGC.Group.Model
             System.Diagnostics.Debug.WriteLine(directionXZ + "," + directionYZ);
 
             Ship.Move(shipMovement);
+            
 
             // Texto informativo de botones
             tButtons = new TgcText2D();
-            tButtons.Text = "CÁMARA: TAB / MUSICA: M / NOTAS: ESPACIO / SUPERPODER: RIGHT SHIFT";
-            tButtons.Align = TgcText2D.TextAlign.CENTER;
-            tButtons.Color = Color.Yellow;
-            tButtons.Position = new Point(tButtons.Position.X, 10);
-            tButtons.changeFont(new Font("Arial", 15, FontStyle.Bold));
+            tButtons.Text = "CÁMARA: TAB \nMUSICA: M \nNOTAS: ESPACIO \nSUPERPODER: LEFT SHIFT \nDEVMOD: K \nOcultar ayuda con H";
+            tButtons.Align = TgcText2D.TextAlign.LEFT;
+            tButtons.Color = Color.White;
+            tButtons.Position = new Point(10, 10);
+            tButtons.changeFont(new Font("BigNoodleTitling", 16, FontStyle.Italic));
 
             // Texto informativo del player
             playerStats = new TgcText2D();
             playerStats.Text = 
                 "PUNTAJE ACTUAL: " + stat.totalPoints + 
-                " MULTIPLICADOR ACTUAL: " + stat.totalMultiply +
-                " MULTIPLICADOR PARCIAL: " + stat.partialMultiply + 
-                " SUPERPODER: " + ((!superPowerStatus) ? "TRUÉ" : "FALSE");
+                "\nMULTIPLICADOR ACTUAL: " + stat.totalMultiply +
+                "\nMULTIPLICADOR PARCIAL: " + stat.partialMultiply + 
+                "\nSUPERPODER: " + ((!superPowerStatus) ? "TRUÉ" : "FALSE");
             playerStats.Size = new Size(280, 200);
             playerStats.Align = TgcText2D.TextAlign.LEFT;
             playerStats.Position = new Point(10, 320);
             playerStats.Color = Color.Yellow;
-            playerStats.changeFont(new Font("Arial", 14, FontStyle.Bold));
+            playerStats.changeFont(new Font("BigNoodleTitling", 19, FontStyle.Italic));
+
+            totalPoints = new TgcText2D();
+            totalPoints.Text = stat.totalPoints.ToString();
+            totalPoints.Align = TgcText2D.TextAlign.CENTER;
+            totalPoints.Position = new Point(totalPoints.Position.X, 10);
+            totalPoints.Color = Color.White;
+            totalPoints.changeFont(new Font("BigNoodleTitling", 100, FontStyle.Italic));
+
+            
+            subPoints = new TgcText2D();
+            subPoints.Text = "-10";
+            subPoints.Align = TgcText2D.TextAlign.CENTER;
+            subPoints.Position = new Point(totalPoints.Position.X + 60, 10);
+            subPoints.Color = Color.Red;
+            subPoints.changeFont(new Font("BigNoodleTitling", 40, FontStyle.Italic));
+
 
             // Transformaciones
             Ship.Transform = TGCMatrix.Scaling(Ship.Scale) * TGCMatrix.RotationYawPitchRoll(Ship.Rotation.Y, Ship.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(Ship.Position);
@@ -520,10 +601,14 @@ namespace TGC.Group.Model
             PreRender();
 
             // Especificaciones en pantalla: posición de la nave y de la cámara
-            DrawText.drawText("Ship Position: \n" + Ship.Position, 5, 20, Color.Yellow);
-            DrawText.drawText("Camera Position: \n" + Camara.Position, 5, 160, Color.Yellow);
-            DrawText.drawText("Medium Elapsed: \n" + medium_elapsed, 145, 20, Color.Yellow);
-            DrawText.drawText("Elapsed: \n" + ElapsedTime, 145, 60, Color.Yellow);
+            if (developerModeGUI)
+            {
+                DrawText.drawText("Ship Position: \n" + Ship.Position, 5, 20, Color.Yellow);
+                DrawText.drawText("Medium Elapsed: \n" + medium_elapsed, 145, 20, Color.Yellow);
+                DrawText.drawText("Camera Position: \n" + Camara.Position, 5, 100, Color.Yellow);
+                DrawText.drawText("Elapsed: \n" + ElapsedTime, 145, 60, Color.Yellow);
+            }
+            
 
             StringFormat stringFormat = new StringFormat();
             stringFormat.Alignment = StringAlignment.Center;      // Horizontal Alignment
@@ -539,8 +624,20 @@ namespace TGC.Group.Model
             mTierra.Render();
             mSol.Render();
             mMarte.Render();
-            tButtons.render();
+
+            if (helpGUI)
+            {
+                tButtons.render();
+            }
             playerStats.render();
+            if (totalPointsGUI)
+            {
+                totalPoints.render();
+            }
+            if (penalty)
+            {
+                subPoints.render();
+            }
             for (int a = 0; a < power_boxes.Count; a++)
             {
                 TGCBox ShortPowerBox = power_boxes[a];
@@ -565,6 +662,12 @@ namespace TGC.Group.Model
             // Posición de cámaras
             camaraInterna.Target = Ship.Position;
             godCamera.Target = godBox.Position;
+
+
+            //drawer2D.BeginDrawSprite();
+            //drawer2D.DrawSprite(sprite);
+            //drawer2D.EndDrawSprite();
+
 
             PostRender();
         }

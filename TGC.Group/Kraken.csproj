@@ -102,8 +102,11 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Core2d\CustomBitmap.cs" />
     <Compile Include="Camera\RotatonalCamera.cs" />
     <Compile Include="Camera\ThirdPersonCamera.cs" />
+    <Compile Include="Core2d\CustomSprite.cs" />
+    <Compile Include="Core2d\Drawer2D.cs" />
     <Compile Include="Form\GameForm.cs">
       <SubType>Form</SubType>
     </Compile>

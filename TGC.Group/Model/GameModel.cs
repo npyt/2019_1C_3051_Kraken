@@ -56,7 +56,7 @@ namespace TGC.Group.Model
         private TGCBox superPowerBox { get; set; }
         private bool superPowerStatus;
         private float superPowerTime;
-        private const float SUPERPOWER_MOVEMENT_SPEED = 52f;
+        private const float SUPERPOWER_MOVEMENT_SPEED = 152f;
 
         // Lista de tracks
         private List<TgcMesh> tracks;
@@ -76,10 +76,10 @@ namespace TGC.Group.Model
 
         // Musica
         private TgcMp3Player mp3Player;
-        String path;
+        String mp3Path;
 
         // Movimiento y rotacion
-        private const float MOVEMENT_SPEED = 12f;
+        private const float MOVEMENT_SPEED = 52f;
         private const float VERTEX_MIN_DISTANCE = 0.3f;
 
         TGCVector3 shipTarget;
@@ -98,7 +98,7 @@ namespace TGC.Group.Model
 
         // Textos 2D
         private TgcText2D tButtons;
-        private TgcText2D playerStats;
+        private TgcText2D multiplyPointsGUI;
         private TgcText2D totalPoints;
         private TgcText2D subPoints;
 
@@ -116,6 +116,8 @@ namespace TGC.Group.Model
         private bool developerModeGUI;
         private bool totalPointsGUI;
         private float totalPointsGUItime;
+        private bool multiplyGUI;
+        private float multiplyPointsGUItime;
 
         private CustomSprite sprite;
         private Drawer2D drawer2D;
@@ -129,6 +131,7 @@ namespace TGC.Group.Model
             helpGUI = true;
             developerModeGUI = false;
             totalPointsGUI = false;
+            multiplyGUI= false;
 
             drawer2D = new Drawer2D();
             penalty = false;
@@ -204,6 +207,14 @@ namespace TGC.Group.Model
                 loader.loadSceneFromFile(MediaDir + "Test\\path01-TgcScene.xml").Meshes[0]);
             concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track02-TgcScene.xml").Meshes[0],
                 loader.loadSceneFromFile(MediaDir + "Test\\path02-TgcScene.xml").Meshes[0]);
+            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track01-TgcScene.xml").Meshes[0],
+                loader.loadSceneFromFile(MediaDir + "Test\\path01-TgcScene.xml").Meshes[0]);
+            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track02-TgcScene.xml").Meshes[0],
+                loader.loadSceneFromFile(MediaDir + "Test\\path02-TgcScene.xml").Meshes[0]);
+            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track01-TgcScene.xml").Meshes[0],
+                loader.loadSceneFromFile(MediaDir + "Test\\path01-TgcScene.xml").Meshes[0]);
+            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track02-TgcScene.xml").Meshes[0],
+                loader.loadSceneFromFile(MediaDir + "Test\\path02-TgcScene.xml").Meshes[0]);
 
             // Asignar proximo target de la nave
             shipTarget = findNextTarget(vertex_pool);
@@ -239,11 +250,10 @@ namespace TGC.Group.Model
             skyBox.Init();
 
             // Musica
-            path = MediaDir + "Music\\hz-circle.mp3";
+            mp3Path = MediaDir + "Music\\BattlefieldMagicSword.mp3";
             mp3Player = new TgcMp3Player();
-            mp3Player.FileName = path;
+            mp3Player.FileName = mp3Path;
             mp3Player.play(true);
-            mp3Player.pause();
 
             // GUI
             
@@ -306,7 +316,9 @@ namespace TGC.Group.Model
                             stat.addPoints(10);
 
                             totalPointsGUI = true;
+                            multiplyGUI = true;
                             totalPointsGUItime = sum_elapsed;
+                            multiplyPointsGUItime = sum_elapsed;
                         }
                     }
                     else
@@ -323,12 +335,13 @@ namespace TGC.Group.Model
                     {
                         penalty = true;
                         totalPointsGUI = true;
-                        
+                        multiplyGUI = true;
                     }
                     stat.addPoints(-10);
 
                     totalPointsGUItime = sum_elapsed;
                     penaltyTime = sum_elapsed;
+                    multiplyPointsGUItime = sum_elapsed;
                 }
             }
 
@@ -342,9 +355,17 @@ namespace TGC.Group.Model
 
             if (totalPointsGUI)
             {
-                if (sum_elapsed - totalPointsGUItime > 1f)
+                if (sum_elapsed - totalPointsGUItime > 1.5f)
                 {
                     totalPointsGUI = false;
+                }
+            }
+
+            if (multiplyGUI)
+            {
+                if (sum_elapsed - multiplyPointsGUItime > 1.5f)
+                {
+                    multiplyGUI = false;
                 }
             }
 
@@ -551,18 +572,6 @@ namespace TGC.Group.Model
             tButtons.changeFont(new Font("BigNoodleTitling", 16, FontStyle.Italic));
 
             // Texto informativo del player
-            playerStats = new TgcText2D();
-            playerStats.Text = 
-                "PUNTAJE ACTUAL: " + stat.totalPoints + 
-                "\nMULTIPLICADOR ACTUAL: " + stat.totalMultiply +
-                "\nMULTIPLICADOR PARCIAL: " + stat.partialMultiply + 
-                "\nSUPERPODER: " + ((!superPowerStatus) ? "TRUÉ" : "FALSE");
-            playerStats.Size = new Size(280, 200);
-            playerStats.Align = TgcText2D.TextAlign.LEFT;
-            playerStats.Position = new Point(10, 320);
-            playerStats.Color = Color.Yellow;
-            playerStats.changeFont(new Font("BigNoodleTitling", 19, FontStyle.Italic));
-
             totalPoints = new TgcText2D();
             totalPoints.Text = stat.totalPoints.ToString();
             totalPoints.Align = TgcText2D.TextAlign.CENTER;
@@ -570,11 +579,17 @@ namespace TGC.Group.Model
             totalPoints.Color = Color.White;
             totalPoints.changeFont(new Font("BigNoodleTitling", 100, FontStyle.Italic));
 
-            
+            multiplyPointsGUI = new TgcText2D();
+            multiplyPointsGUI.Text = "x" + stat.totalMultiply;
+            multiplyPointsGUI.Align = TgcText2D.TextAlign.CENTER;
+            multiplyPointsGUI.Position = new Point(totalPoints.Position.X + 80,100);
+            multiplyPointsGUI.Color = Color.Yellow;
+            multiplyPointsGUI.changeFont(new Font("BigNoodleTitling", 19, FontStyle.Italic));
+
             subPoints = new TgcText2D();
             subPoints.Text = "-10";
             subPoints.Align = TgcText2D.TextAlign.CENTER;
-            subPoints.Position = new Point(totalPoints.Position.X + 60, 10);
+            subPoints.Position = new Point(totalPoints.Position.X + 80, 40);
             subPoints.Color = Color.Red;
             subPoints.changeFont(new Font("BigNoodleTitling", 40, FontStyle.Italic));
 
@@ -607,6 +622,10 @@ namespace TGC.Group.Model
                 DrawText.drawText("Medium Elapsed: \n" + medium_elapsed, 145, 20, Color.Yellow);
                 DrawText.drawText("Camera Position: \n" + Camara.Position, 5, 100, Color.Yellow);
                 DrawText.drawText("Elapsed: \n" + ElapsedTime, 145, 60, Color.Yellow);
+                DrawText.drawText("PUNTAJE ACTUAL: " + stat.totalPoints +
+                "\nMULTIPLICADOR ACTUAL: " + stat.totalMultiply +
+                "\nMULTIPLICADOR PARCIAL: " + stat.partialMultiply +
+                "\nSUPERPODER: " + ((!superPowerStatus) ? "TRUÉ" : "FALSE" + ElapsedTime), 5, 180, Color.Yellow);
             }
             
 
@@ -629,7 +648,10 @@ namespace TGC.Group.Model
             {
                 tButtons.render();
             }
-            playerStats.render();
+            if (multiplyGUI)
+            {
+                multiplyPointsGUI.render();
+            }
             if (totalPointsGUI)
             {
                 totalPoints.render();

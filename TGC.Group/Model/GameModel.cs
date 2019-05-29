@@ -199,22 +199,18 @@ namespace TGC.Group.Model
             shipTarget = Ship.Position;
             
             // Init de tracks
-            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track01-TgcScene.xml").Meshes[0],
-                loader.loadSceneFromFile(MediaDir + "Test\\path01-TgcScene.xml").Meshes[0]);
-            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track02-TgcScene.xml").Meshes[0],
-                loader.loadSceneFromFile(MediaDir + "Test\\path02-TgcScene.xml").Meshes[0]);
-            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track01-TgcScene.xml").Meshes[0],
-                loader.loadSceneFromFile(MediaDir + "Test\\path01-TgcScene.xml").Meshes[0]);
-            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track02-TgcScene.xml").Meshes[0],
-                loader.loadSceneFromFile(MediaDir + "Test\\path02-TgcScene.xml").Meshes[0]);
-            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track01-TgcScene.xml").Meshes[0],
-                loader.loadSceneFromFile(MediaDir + "Test\\path01-TgcScene.xml").Meshes[0]);
-            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track02-TgcScene.xml").Meshes[0],
-                loader.loadSceneFromFile(MediaDir + "Test\\path02-TgcScene.xml").Meshes[0]);
-            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track01-TgcScene.xml").Meshes[0],
-                loader.loadSceneFromFile(MediaDir + "Test\\path01-TgcScene.xml").Meshes[0]);
-            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\track02-TgcScene.xml").Meshes[0],
-                loader.loadSceneFromFile(MediaDir + "Test\\path02-TgcScene.xml").Meshes[0]);
+            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\new_track01-TgcScene.xml").Meshes[0],
+                loader.loadSceneFromFile(MediaDir + "Test\\new_path01-TgcScene.xml").Meshes[0]);
+            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\new_track02-TgcScene.xml").Meshes[0],
+                loader.loadSceneFromFile(MediaDir + "Test\\new_path02-TgcScene.xml").Meshes[0]);
+            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\new_track03-TgcScene.xml").Meshes[0],
+                loader.loadSceneFromFile(MediaDir + "Test\\new_path03-TgcScene.xml").Meshes[0]);
+            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\new_track01-TgcScene.xml").Meshes[0],
+                loader.loadSceneFromFile(MediaDir + "Test\\new_path01-TgcScene.xml").Meshes[0]);
+            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\new_track02-TgcScene.xml").Meshes[0],
+                loader.loadSceneFromFile(MediaDir + "Test\\new_path02-TgcScene.xml").Meshes[0]);
+            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\new_track03-TgcScene.xml").Meshes[0],
+                loader.loadSceneFromFile(MediaDir + "Test\\new_path03-TgcScene.xml").Meshes[0]);
 
             // Asignar proximo target de la nave
             shipTarget = findNextTarget(vertex_pool);

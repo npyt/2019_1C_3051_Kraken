@@ -16,6 +16,7 @@ using TGC.Core.Sound;
 using TGC.Group.Stats;
 using TGC.Group.Core2d;
 using System.Collections.Generic;
+using TGC.Group.VertexMovement;
 
 namespace TGC.Group.Model
 {
@@ -41,6 +42,7 @@ namespace TGC.Group.Model
 
         // Nave principal
         private TgcMesh Ship { get; set; }
+        VertexMovementManager shipManager;
 
         // Lista de paths
         private List<TgcMesh> paths;
@@ -81,11 +83,6 @@ namespace TGC.Group.Model
         // Movimiento y rotacion
         private const float MOVEMENT_SPEED = 52f;
         private const float VERTEX_MIN_DISTANCE = 0.3f;
-
-        TGCVector3 shipTarget;
-        TGCVector3 previousTarget;
-        private List<TGCVector3> vertex_pool;
-        private List<TGCVector3> permanent_pool;
 
         float sum_elapsed = 0f;
         int counter_elapsed = 0;
@@ -167,9 +164,6 @@ namespace TGC.Group.Model
             power_boxes = new List<TGCBox>();
             power_boxes_states = new List<Boolean>();
 
-            vertex_pool = new List<TGCVector3>();
-            permanent_pool = new List<TGCVector3>();
-
             // Device de DirectX para crear primitivas.
             var d3dDevice = D3DDevice.Instance.Device;
 
@@ -221,8 +215,8 @@ namespace TGC.Group.Model
             Camara = camaraInterna;
             
             // Asignar target inicial a la ship
-            shipTarget = Ship.Position;
-            
+            shipManager = new VertexMovementManager(Ship.Position, Ship.Position, MOVEMENT_SPEED);
+
             // Init de tracks
             concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\new_track01-TgcScene.xml").Meshes[0],
                 loader.loadSceneFromFile(MediaDir + "Test\\new_path01-TgcScene.xml").Meshes[0]);
@@ -238,7 +232,7 @@ namespace TGC.Group.Model
                 loader.loadSceneFromFile(MediaDir + "Test\\new_path03-TgcScene.xml").Meshes[0]);
 
             // Asignar proximo target de la nave
-            shipTarget = findNextTarget(vertex_pool);
+            shipManager.init();
 
             // Init de poderes
             addPowerBox();
@@ -501,28 +495,8 @@ namespace TGC.Group.Model
             godBox.Move(movementGod);
 
             // Movimiento de la nave (Ship)
-            var shipMovement = TGCVector3.Empty;
-            var shipOriginalPos = Ship.Position;
-
-            shipMovement = shipTarget;
-            shipMovement.Subtract(shipOriginalPos);
-
-            if (shipMovement.Length() < (MOVEMENT_SPEED * ElapsedTime))
-            {
-                shipMovement = shipTarget;
-                shipMovement.Subtract(shipOriginalPos);
-            }
-            else
-            {
-                shipMovement.Normalize();
-                shipMovement.Multiply(MOVEMENT_SPEED * ElapsedTime);
-
-            }
-            //test_hit.Position = getPositionAtMiliseconds(1000);
-            if (shipMovement.Length() < (MOVEMENT_SPEED * ElapsedTime) / 2)
-            {
-                shipTarget = findNextTarget(vertex_pool);
-            }
+            TGCVector3 shipMovement = shipManager.update(ElapsedTime);
+            Ship.Move(shipMovement);
 
             // Rotacion de la camara junto a la Ship por el camino
             float angleXZ = 0;
@@ -576,8 +550,6 @@ namespace TGC.Group.Model
             System.Diagnostics.Debug.WriteLine(originalRot);
             System.Diagnostics.Debug.WriteLine(directionXZ + "," + directionYZ);
 
-            Ship.Move(shipMovement);
-
             // Texto informativo de botones
             tButtons.Text = "CÁMARA: TAB \nMUSICA: M \nNOTAS: ESPACIO \nSUPERPODER: LEFT SHIFT \nDEVMOD: K \nOcultar ayuda con H";
 
@@ -620,7 +592,8 @@ namespace TGC.Group.Model
                 "\nMULTIPLICADOR PARCIAL: " + stat.partialMultiply +
                 "\nSUPERPODER: " + ((!superPowerStatus) ? "TRUÉ" : "FALSE" + ElapsedTime), 5, 180, Color.Yellow);
             }
-            
+            DrawText.drawText("SumElapsed: \n" + sum_elapsed, 145, 100, Color.White);
+
 
             StringFormat stringFormat = new StringFormat();
             stringFormat.Alignment = StringAlignment.Center;      // Horizontal Alignment
@@ -687,69 +660,7 @@ namespace TGC.Group.Model
             PostRender();
         }
 
-        public void addVertexCollection(TGCVector3[] vertex_collection, TGCVector3 offset)
-        {
-            for (int i = 0; i < vertex_collection.Length; i++)
-            {
-                Boolean present = false;
-                TGCVector3 v = vertex_collection[i];
-                v.Add(offset);
-
-                for (int j = 0; j < vertex_pool.Count; j++)
-                {
-                    TGCVector3 comparator = vertex_pool[j];
-                    if (comparator.X == v.X && comparator.Y == v.Y && comparator.Z == v.Z)
-                    {
-                        present = true;
-                    }
-                }
-
-                if (!present)
-                {
-                    vertex_pool.Add(v);
-                    permanent_pool.Add(v);
-                }
-            }
-        }
-       
-        public TGCVector3 findNextTarget(List<TGCVector3> pool)
-        {
-            TGCVector3 current_target = shipTarget;
-            pool.Remove(shipTarget);
-
-            float distance = -1f;
-            TGCVector3 new_target = new TGCVector3();
-
-            if (pool.Count > 0)
-            {
-                for (int i = 0; i < pool.Count; i++)
-                {
-                    TGCVector3 this_vertex = pool[i];
-                    this_vertex.Subtract(current_target);
-                    float this_distance = this_vertex.Length();
-
-                    if (distance < 0)
-                    {
-                        distance = this_distance;
-                        new_target = pool[i];
-                    }
-                    else if (this_distance < distance)
-                    {
-                        distance = this_distance;
-                        new_target = pool[i];
-                    }
-                }
-            }
-            else
-            {
-                new_target = current_target;
-            }
-            shipTarget = new_target;
-
-            return shipTarget;
-        }
-
-        public TGCVector3 getPositionAtMiliseconds(float miliseconds)
+     /*   public TGCVector3 getPositionAtMiliseconds(float miliseconds)
         {
             if (medium_elapsed == 0)
             {
@@ -763,7 +674,7 @@ namespace TGC.Group.Model
 
             shipTarget = originalTarget;
             return simulated_ship_position;
-        }
+        } */
 
         private void concatTrack(TgcMesh track, TgcMesh path)
         {
@@ -771,10 +682,10 @@ namespace TGC.Group.Model
 
             if(tracks.Count != 0)
             {
-                lastVertex = vertex_pool[0];
-                for (int a = 0; a < vertex_pool.Count; a++)
+                lastVertex = shipManager.vertex_pool[0];
+                for (int a = 0; a < shipManager.vertex_pool.Count; a++)
                 {
-                    TGCVector3 thisvertex = vertex_pool[a];
+                    TGCVector3 thisvertex = shipManager.vertex_pool[a];
                     if (thisvertex.Z >= lastVertex.Z)
                     {
                         lastVertex = thisvertex;
@@ -788,7 +699,7 @@ namespace TGC.Group.Model
             path.Move(lastVertex);
             paths.Add(path);
 
-            addVertexCollection(path.getVertexPositions(), lastVertex);
+            shipManager.addVertexCollection(path.getVertexPositions(), lastVertex);
         }
 
         private void addPowerBox()
@@ -798,7 +709,7 @@ namespace TGC.Group.Model
 
             var sizePowerBox = new TGCVector3(15, 15, 1);
             TGCBox powerbox = TGCBox.fromSize(sizePowerBox, texture);
-            powerbox.Position = vertex_pool[(new Random(Guid.NewGuid().GetHashCode())).Next(vertex_pool.Count)];
+            powerbox.Position = shipManager.vertex_pool[(new Random(Guid.NewGuid().GetHashCode())).Next(shipManager.vertex_pool.Count)];
             powerbox.Transform = TGCMatrix.Identity;
 
             power_boxes.Add(powerbox);

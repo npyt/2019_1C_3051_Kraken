@@ -256,8 +256,32 @@ namespace TGC.Group.Model
             mp3Player.play(true);
 
             // GUI
-            
 
+            tButtons = new TgcText2D();
+            tButtons.Align = TgcText2D.TextAlign.LEFT;
+            tButtons.Color = Color.White;
+            tButtons.Position = new Point(10, 10);
+            tButtons.changeFont(new Font("BigNoodleTitling", 16, FontStyle.Italic));
+
+
+            totalPoints = new TgcText2D();
+            totalPoints.Align = TgcText2D.TextAlign.CENTER;
+            totalPoints.Position = new Point(totalPoints.Position.X, 10);
+            totalPoints.Color = Color.White;
+            totalPoints.changeFont(new Font("BigNoodleTitling", 100, FontStyle.Italic));
+
+            multiplyPointsGUI = new TgcText2D();
+            multiplyPointsGUI.Align = TgcText2D.TextAlign.CENTER;
+            multiplyPointsGUI.Position = new Point(totalPoints.Position.X + 80, 100);
+            multiplyPointsGUI.Color = Color.Yellow;
+            multiplyPointsGUI.changeFont(new Font("BigNoodleTitling", 19, FontStyle.Italic));
+
+            subPoints = new TgcText2D();
+            subPoints.Text = "-10";
+            subPoints.Align = TgcText2D.TextAlign.CENTER;
+            subPoints.Position = new Point(totalPoints.Position.X + 80, 40);
+            subPoints.Color = Color.Red;
+            subPoints.changeFont(new Font("BigNoodleTitling", 40, FontStyle.Italic));
 
         }
 
@@ -564,34 +588,16 @@ namespace TGC.Group.Model
             
 
             // Texto informativo de botones
-            tButtons = new TgcText2D();
             tButtons.Text = "CÁMARA: TAB \nMUSICA: M \nNOTAS: ESPACIO \nSUPERPODER: LEFT SHIFT \nDEVMOD: K \nOcultar ayuda con H";
-            tButtons.Align = TgcText2D.TextAlign.LEFT;
-            tButtons.Color = Color.White;
-            tButtons.Position = new Point(10, 10);
-            tButtons.changeFont(new Font("BigNoodleTitling", 16, FontStyle.Italic));
 
             // Texto informativo del player
-            totalPoints = new TgcText2D();
+
             totalPoints.Text = stat.totalPoints.ToString();
-            totalPoints.Align = TgcText2D.TextAlign.CENTER;
-            totalPoints.Position = new Point(totalPoints.Position.X, 10);
-            totalPoints.Color = Color.White;
-            totalPoints.changeFont(new Font("BigNoodleTitling", 100, FontStyle.Italic));
 
-            multiplyPointsGUI = new TgcText2D();
+            
             multiplyPointsGUI.Text = "x" + stat.totalMultiply;
-            multiplyPointsGUI.Align = TgcText2D.TextAlign.CENTER;
-            multiplyPointsGUI.Position = new Point(totalPoints.Position.X + 80,100);
-            multiplyPointsGUI.Color = Color.Yellow;
-            multiplyPointsGUI.changeFont(new Font("BigNoodleTitling", 19, FontStyle.Italic));
 
-            subPoints = new TgcText2D();
-            subPoints.Text = "-10";
-            subPoints.Align = TgcText2D.TextAlign.CENTER;
-            subPoints.Position = new Point(totalPoints.Position.X + 80, 40);
-            subPoints.Color = Color.Red;
-            subPoints.changeFont(new Font("BigNoodleTitling", 40, FontStyle.Italic));
+            
 
 
             // Transformaciones

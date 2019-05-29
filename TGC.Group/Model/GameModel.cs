@@ -136,6 +136,31 @@ namespace TGC.Group.Model
             drawer2D = new Drawer2D();
             penalty = false;
 
+            tButtons = new TgcText2D();
+            tButtons.Align = TgcText2D.TextAlign.LEFT;
+            tButtons.Color = Color.White;
+            tButtons.Position = new Point(10, 10);
+            tButtons.changeFont(new Font("BigNoodleTitling", 16, FontStyle.Italic));
+
+            totalPoints = new TgcText2D();
+            totalPoints.Align = TgcText2D.TextAlign.CENTER;
+            totalPoints.Position = new Point(totalPoints.Position.X, 10);
+            totalPoints.Color = Color.White;
+            totalPoints.changeFont(new Font("BigNoodleTitling", 100, FontStyle.Italic));
+
+            multiplyPointsGUI = new TgcText2D();
+            multiplyPointsGUI.Align = TgcText2D.TextAlign.CENTER;
+            multiplyPointsGUI.Position = new Point(totalPoints.Position.X + 80, 100);
+            multiplyPointsGUI.Color = Color.Yellow;
+            multiplyPointsGUI.changeFont(new Font("BigNoodleTitling", 19, FontStyle.Italic));
+
+            subPoints = new TgcText2D();
+            subPoints.Text = "-10";
+            subPoints.Align = TgcText2D.TextAlign.CENTER;
+            subPoints.Position = new Point(totalPoints.Position.X + 80, 40);
+            subPoints.Color = Color.Red;
+            subPoints.changeFont(new Font("BigNoodleTitling", 40, FontStyle.Italic));
+
             // Listas de tracks, paths y powerBoxes
             tracks = new List<TgcMesh>();
             paths = new List<TgcMesh>();
@@ -250,35 +275,6 @@ namespace TGC.Group.Model
             mp3Player = new TgcMp3Player();
             mp3Player.FileName = mp3Path;
             mp3Player.play(true);
-
-            // GUI
-
-            tButtons = new TgcText2D();
-            tButtons.Align = TgcText2D.TextAlign.LEFT;
-            tButtons.Color = Color.White;
-            tButtons.Position = new Point(10, 10);
-            tButtons.changeFont(new Font("BigNoodleTitling", 16, FontStyle.Italic));
-
-
-            totalPoints = new TgcText2D();
-            totalPoints.Align = TgcText2D.TextAlign.CENTER;
-            totalPoints.Position = new Point(totalPoints.Position.X, 10);
-            totalPoints.Color = Color.White;
-            totalPoints.changeFont(new Font("BigNoodleTitling", 100, FontStyle.Italic));
-
-            multiplyPointsGUI = new TgcText2D();
-            multiplyPointsGUI.Align = TgcText2D.TextAlign.CENTER;
-            multiplyPointsGUI.Position = new Point(totalPoints.Position.X + 80, 100);
-            multiplyPointsGUI.Color = Color.Yellow;
-            multiplyPointsGUI.changeFont(new Font("BigNoodleTitling", 19, FontStyle.Italic));
-
-            subPoints = new TgcText2D();
-            subPoints.Text = "-10";
-            subPoints.Align = TgcText2D.TextAlign.CENTER;
-            subPoints.Position = new Point(totalPoints.Position.X + 80, 40);
-            subPoints.Color = Color.Red;
-            subPoints.changeFont(new Font("BigNoodleTitling", 40, FontStyle.Italic));
-
         }
 
         public override void Update()
@@ -581,7 +577,6 @@ namespace TGC.Group.Model
             System.Diagnostics.Debug.WriteLine(directionXZ + "," + directionYZ);
 
             Ship.Move(shipMovement);
-            
 
             // Texto informativo de botones
             tButtons.Text = "CÁMARA: TAB \nMUSICA: M \nNOTAS: ESPACIO \nSUPERPODER: LEFT SHIFT \nDEVMOD: K \nOcultar ayuda con H";
@@ -589,12 +584,8 @@ namespace TGC.Group.Model
             // Texto informativo del player
 
             totalPoints.Text = stat.totalPoints.ToString();
-
             
             multiplyPointsGUI.Text = "x" + stat.totalMultiply;
-
-            
-
 
             // Transformaciones
             Ship.Transform = TGCMatrix.Scaling(Ship.Scale) * TGCMatrix.RotationYawPitchRoll(Ship.Rotation.Y, Ship.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(Ship.Position);

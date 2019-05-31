@@ -497,7 +497,7 @@ namespace TGC.Group.Model
             godBox.Move(movementGod);
 
             // Movimiento de la nave (Ship)
-            TGCVector3 shipMovement = shipManager.update(ElapsedTime);
+            TGCVector3 shipMovement = shipManager.update(ElapsedTime, Ship.Position);
             Ship.Move(shipMovement);
 
             // Rotacion de la camara junto a la Ship por el camino

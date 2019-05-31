@@ -30,10 +30,10 @@ namespace TGC.Group.VertexMovement
             target = findNextTarget(vertex_pool);
         }
 
-        public TGCVector3 update (float ElapsedTime)
+        public TGCVector3 update (float ElapsedTime, TGCVector3 updatedPosition)
         {
             TGCVector3 shipMovement = TGCVector3.Empty;
-            var shipOriginalPos = position;
+            var shipOriginalPos = updatedPosition;
 
             shipMovement = new TGCVector3(target);
             shipMovement.Subtract(shipOriginalPos);
@@ -54,7 +54,6 @@ namespace TGC.Group.VertexMovement
             {
                 target = findNextTarget(vertex_pool);
             }
-
             return shipMovement;
         }
 

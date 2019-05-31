@@ -168,10 +168,11 @@ namespace TGC.Group.Model
 
             subPoints = new TgcText2D();
             subPoints.Text = "-10";
-            subPoints.Align = TgcText2D.TextAlign.CENTER;
-            subPoints.Position = new Point(totalPoints.Position.X + 80, 40);
+            subPoints.Align = TgcText2D.TextAlign.LEFT;
+            subPoints.Size = new Size(150, 150);
+            subPoints.Position = new Point(180, Screen.PrimaryScreen.Bounds.Bottom - multiplyPointsGUI.Size.Height - 220);
             subPoints.Color = Color.Red;
-            subPoints.changeFont(new Font("BigNoodleTitling", 40, FontStyle.Italic));
+            subPoints.changeFont(new Font("BigNoodleTitling", 59, FontStyle.Italic));
 
             // Listas de tracks, paths y powerBoxes
             tracks = new List<TgcMesh>();
@@ -356,8 +357,14 @@ namespace TGC.Group.Model
                     stat.cancelMultiply();
                     if (stat.totalPoints != 0)
                     {
+                        subPoints.Text = "-10";
                         penalty = true;
+                    } else if (stat.totalPoints == 0)
+                    {
+                        penalty = true;
+                        subPoints.Text = "X";
                     }
+                    
                     stat.addPoints(-10);
 
                     totalPointsGUItime = sum_elapsed;

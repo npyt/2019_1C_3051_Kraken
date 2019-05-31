@@ -17,6 +17,7 @@ using TGC.Group.Stats;
 using TGC.Group.Core2d;
 using System.Collections.Generic;
 using TGC.Group.VertexMovement;
+using System.Windows.Forms;
 
 namespace TGC.Group.Model
 {
@@ -111,45 +112,59 @@ namespace TGC.Group.Model
         // GUI
         private bool helpGUI;
         private bool developerModeGUI;
-        private bool totalPointsGUI;
         private float totalPointsGUItime;
-        private bool multiplyGUI;
         private float multiplyPointsGUItime;
-
-        private CustomSprite sprite;
-        private Drawer2D drawer2D;
         private bool penalty;
         private float penaltyTime;
+
+        private Drawer2D drawer2D;
+        private CustomSprite superPowerSprite;
+        private CustomSprite songProgressBarSprite;
 
         public override void Init()
         {
             // GUI
+            //Crear Sprite
+            drawer2D = new Drawer2D();
+
+
+
+            superPowerSprite = new CustomSprite();
+            superPowerSprite.Bitmap = new CustomBitmap(MediaDir + "\\GUI\\superPowerBar.png", D3DDevice.Instance.Device);
+            superPowerSprite.Scaling = new TGCVector2(0.5f, 0.5f);
+            var textureSize = superPowerSprite.Bitmap.Size;
+            superPowerSprite.Position = new TGCVector2(50, Screen.PrimaryScreen.Bounds.Bottom - textureSize.Height * 0.7f);
+
+            songProgressBarSprite = new CustomSprite();
+            songProgressBarSprite.Bitmap = new CustomBitmap(MediaDir + "\\GUI\\songProgressBar.png", D3DDevice.Instance.Device);
+            songProgressBarSprite.Scaling = new TGCVector2(0.72f, 0.5f);
+            songProgressBarSprite.Position = new TGCVector2(30, 30);
 
             helpGUI = true;
             developerModeGUI = false;
-            totalPointsGUI = false;
-            multiplyGUI= false;
 
-            drawer2D = new Drawer2D();
             penalty = false;
 
             tButtons = new TgcText2D();
-            tButtons.Align = TgcText2D.TextAlign.LEFT;
+            tButtons.Align = TgcText2D.TextAlign.RIGHT;
             tButtons.Color = Color.White;
-            tButtons.Position = new Point(10, 10);
+            tButtons.Size = new Size(200, 240);
+            tButtons.Position = new Point(Screen.PrimaryScreen.Bounds.Right - tButtons.Size.Width - 30, Screen.PrimaryScreen.Bounds.Bottom - tButtons.Size.Height);
             tButtons.changeFont(new Font("BigNoodleTitling", 16, FontStyle.Italic));
 
             totalPoints = new TgcText2D();
-            totalPoints.Align = TgcText2D.TextAlign.CENTER;
-            totalPoints.Position = new Point(totalPoints.Position.X, 10);
+            totalPoints.Align = TgcText2D.TextAlign.LEFT;
+            totalPoints.Size = new Size(200, 300);
+            totalPoints.Position = new Point(100, Screen.PrimaryScreen.Bounds.Bottom - totalPoints.Size.Height - 20);
             totalPoints.Color = Color.White;
-            totalPoints.changeFont(new Font("BigNoodleTitling", 100, FontStyle.Italic));
+            totalPoints.changeFont(new Font("BigNoodleTitling", 180, FontStyle.Regular));
 
             multiplyPointsGUI = new TgcText2D();
-            multiplyPointsGUI.Align = TgcText2D.TextAlign.CENTER;
-            multiplyPointsGUI.Position = new Point(totalPoints.Position.X + 80, 100);
-            multiplyPointsGUI.Color = Color.Yellow;
-            multiplyPointsGUI.changeFont(new Font("BigNoodleTitling", 19, FontStyle.Italic));
+            multiplyPointsGUI.Align = TgcText2D.TextAlign.LEFT;
+            multiplyPointsGUI.Size = new Size(150, 150);
+            multiplyPointsGUI.Position = new Point(110, Screen.PrimaryScreen.Bounds.Bottom - multiplyPointsGUI.Size.Height - 220);
+            multiplyPointsGUI.Color = Color.White;
+            multiplyPointsGUI.changeFont(new Font("BigNoodleTitling", 59, FontStyle.Italic));
 
             subPoints = new TgcText2D();
             subPoints.Text = "-10";
@@ -241,9 +256,9 @@ namespace TGC.Group.Model
             addPowerBox();
 
             // SuperPower
-            var sizeSuperPower = new TGCVector3(25, 2, 2);
+            var sizeSuperPower = new TGCVector3(225, 1, 1);
             superPowerBox = TGCBox.fromSize(sizeSuperPower, texture);
-            superPowerBox.Color = Color.Green;
+            superPowerBox.Color = Color.MediumPurple;
             superPowerBox.updateValues();
             superPowerBox.Position = new TGCVector3(0, 0, -50);
             superPowerBox.Transform = TGCMatrix.Identity;
@@ -265,7 +280,7 @@ namespace TGC.Group.Model
             skyBox.Init();
 
             // Musica
-            mp3Path = MediaDir + "Music\\BattlefieldMagicSword.mp3";
+            mp3Path = MediaDir + "Music\\BattlefieldMagicSword.wav";
             mp3Player = new TgcMp3Player();
             mp3Player.FileName = mp3Path;
             mp3Player.play(true);
@@ -274,7 +289,7 @@ namespace TGC.Group.Model
         public override void Update()
         {
             PreUpdate();
-            
+
 
             // Apretar M para activar musica
             if (Input.keyPressed(Key.M))
@@ -283,7 +298,7 @@ namespace TGC.Group.Model
                 {
                     //Pausar el MP3
                     mp3Player.pause();
-                } else if(mp3Player.getStatus() == TgcMp3Player.States.Paused)
+                } else if (mp3Player.getStatus() == TgcMp3Player.States.Paused)
                 {
                     //Resumir la ejecución del MP3
                     mp3Player.resume();
@@ -325,8 +340,6 @@ namespace TGC.Group.Model
                             stat.addMultiply();
                             stat.addPoints(10);
 
-                            totalPointsGUI = true;
-                            multiplyGUI = true;
                             totalPointsGUItime = sum_elapsed;
                             multiplyPointsGUItime = sum_elapsed;
                         }
@@ -344,8 +357,6 @@ namespace TGC.Group.Model
                     if (stat.totalPoints != 0)
                     {
                         penalty = true;
-                        totalPointsGUI = true;
-                        multiplyGUI = true;
                     }
                     stat.addPoints(-10);
 
@@ -360,22 +371,6 @@ namespace TGC.Group.Model
                 if (sum_elapsed - penaltyTime > 0.5f)
                 {
                     penalty = false;
-                }
-            }
-
-            if (totalPointsGUI)
-            {
-                if (sum_elapsed - totalPointsGUItime > 1.5f)
-                {
-                    totalPointsGUI = false;
-                }
-            }
-
-            if (multiplyGUI)
-            {
-                if (sum_elapsed - multiplyPointsGUItime > 1.5f)
-                {
-                    multiplyGUI = false;
                 }
             }
 
@@ -407,6 +402,8 @@ namespace TGC.Group.Model
                     superPowerStatus = true;
                     superPowerBox.Position = Ship.Position;
                     superPowerTime = sum_elapsed;
+
+
                 }
             }
 
@@ -418,21 +415,21 @@ namespace TGC.Group.Model
             if (Input.keyPressed(Key.K))
             {
                 developerModeGUI = !developerModeGUI;
-                helpGUI = false;
             }
             if (superPowerStatus)
             {
+
                 var superPowerMovement = TGCVector3.Empty;
                 var superPowerOriginalPos = Ship.Position;
 
-                superPowerMovement = shipTarget;
+                //superPowerMovement = shipTarget;
                 superPowerMovement.Subtract(superPowerOriginalPos);
 
                 if (superPowerMovement.Length() < (SUPERPOWER_MOVEMENT_SPEED * ElapsedTime))
                 {
-                    superPowerMovement = shipTarget;
+                    //   superPowerMovement = shipTarget;
                     superPowerMovement.Subtract(superPowerOriginalPos);
-                }else
+                } else
                 {
                     superPowerMovement.Normalize();
                     superPowerMovement.Multiply(SUPERPOWER_MOVEMENT_SPEED * ElapsedTime);
@@ -441,15 +438,20 @@ namespace TGC.Group.Model
                 //test_hit.Position = getPositionAtMiliseconds(1000);
                 if (superPowerMovement.Length() < (SUPERPOWER_MOVEMENT_SPEED * ElapsedTime) / 2)
                 {
-                    shipTarget = findNextTarget(vertex_pool);
+                    //   shipTarget = findNextTarget(vertex_pool);
                 }
                 superPowerBox.Move(superPowerMovement);
 
+
                 if (sum_elapsed - superPowerTime > 2.7f)
                 {
+                    superPowerSprite.Scaling = new TGCVector2(0.5f, 0.5f);
                     superPowerStatus = false;
                 }
             }
+
+        
+
 
             // Movimiento de la godCamera con W A S D ESPACIO C
             var movementGod = TGCVector3.Empty;
@@ -580,6 +582,17 @@ namespace TGC.Group.Model
             //Inicio el render de la escena, para ejemplos simples. Cuando tenemos postprocesado o shaders es mejor realizar las operaciones según nuestra conveniencia.
             PreRender();
 
+            //Iniciar dibujado de todos los Sprites de la escena (en este caso es solo uno)
+            drawer2D.BeginDrawSprite();
+
+            //Dibujar sprite (si hubiese mas, deberian ir todos aquí)
+            drawer2D.DrawSprite(superPowerSprite);
+            drawer2D.DrawSprite(songProgressBarSprite);
+
+            //Finalizar el dibujado de Sprites
+            drawer2D.EndDrawSprite();
+
+
             // Especificaciones en pantalla: posición de la nave y de la cámara
             if (developerModeGUI)
             {
@@ -610,17 +623,11 @@ namespace TGC.Group.Model
             mSol.Render();
             mMarte.Render();
 
+            totalPoints.render();
+            multiplyPointsGUI.render();
             if (helpGUI)
             {
                 tButtons.render();
-            }
-            if (multiplyGUI)
-            {
-                multiplyPointsGUI.render();
-            }
-            if (totalPointsGUI)
-            {
-                totalPoints.render();
             }
             if (penalty)
             {
@@ -707,10 +714,15 @@ namespace TGC.Group.Model
             var pathTexturaCaja = MediaDir + "Test\\Textures\\white_wall.jpg";
             var texture = TgcTexture.createTexture(pathTexturaCaja);
 
-            var sizePowerBox = new TGCVector3(15, 15, 1);
+            var sizePowerBox = new TGCVector3(8, 1, 8);
             TGCBox powerbox = TGCBox.fromSize(sizePowerBox, texture);
-            powerbox.Position = shipManager.vertex_pool[(new Random(Guid.NewGuid().GetHashCode())).Next(shipManager.vertex_pool.Count)];
+            powerbox.Color = Color.Pink;
+            TGCVector3 randomPosition = shipManager.vertex_pool[(new Random(Guid.NewGuid().GetHashCode())).Next(shipManager.vertex_pool.Count)];
+            randomPosition.Y = randomPosition.Y + 3;
+            powerbox.Position = randomPosition;
             powerbox.Transform = TGCMatrix.Identity;
+            powerbox.updateValues();
+            
 
             power_boxes.Add(powerbox);
             power_boxes_states.Add(false);

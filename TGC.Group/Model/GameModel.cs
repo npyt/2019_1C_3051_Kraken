@@ -97,6 +97,7 @@ namespace TGC.Group.Model
         TGCVector3 directionYZ;
         float prevAngleXZ = 0;
         float prevAngleYZ = 0;
+        TGCVector3 shipMovement;
 
         // Textos 2D
         private TgcText2D tButtons;
@@ -212,7 +213,7 @@ namespace TGC.Group.Model
 
             // Nave
             Ship = loader.loadSceneFromFile(MediaDir + "Test\\ship_soft-TgcScene.xml").Meshes[0];
-            Ship.Move(0, 0, 0);
+            Ship.Move(0, 10, 0);
             originalRot = new TGCVector3(0, 0, 1);
             currentRot = originalRot;
 
@@ -229,7 +230,7 @@ namespace TGC.Group.Model
             mMarte.Move(0, 0, 0);
 
             // Camara a la ship
-            camaraInterna = new TgcThirdPersonCamera(Ship.Position, 20, -55);
+            camaraInterna = new TgcThirdPersonCamera(Ship.Position, shipMovement + Ship.Position, 10, -35);
 
             // Camara god
             godCamera = new TgcThirdPersonCamera(godBox.Position, 60, -135);
@@ -509,7 +510,6 @@ namespace TGC.Group.Model
                 {
                     rotate = -2 * ElapsedTime;
                 }
-
             }
             
             // Rotación de la GodCamera
@@ -522,7 +522,7 @@ namespace TGC.Group.Model
             godBox.Move(movementGod);
 
             // Movimiento de la nave (Ship)
-            TGCVector3 shipMovement = shipManager.update(ElapsedTime, Ship.Position);
+            shipMovement = shipManager.update(ElapsedTime, Ship.Position);
             Ship.Move(shipMovement);
 
             // Rotacion de la camara junto a la Ship por el camino
@@ -591,6 +591,10 @@ namespace TGC.Group.Model
                 ShortPowerBox.Transform = TGCMatrix.Scaling(ShortPowerBox.Scale) * TGCMatrix.RotationYawPitchRoll(ShortPowerBox.Rotation.Y, ShortPowerBox.Rotation.X, ShortPowerBox.Rotation.Z) * TGCMatrix.Translation(ShortPowerBox.Position);
             }
             test_hit.Transform = TGCMatrix.Scaling(test_hit.Scale) * TGCMatrix.RotationYawPitchRoll(test_hit.Rotation.Y, test_hit.Rotation.X, test_hit.Rotation.Z) * TGCMatrix.Translation(test_hit.Position);
+
+            // Posición de cámaras
+            camaraInterna.TargetDisplacement = Ship.Position+ shipMovement ;
+            godCamera.Target = godBox.Position;
 
 
             PostUpdate();
@@ -673,10 +677,7 @@ namespace TGC.Group.Model
                 superPowerBox.Render();
             }
 
-            // Posición de cámaras
-            camaraInterna.Target = Ship.Position;
-            godCamera.Target = godBox.Position;
-
+            
 
             //drawer2D.BeginDrawSprite();
             //drawer2D.DrawSprite(sprite);

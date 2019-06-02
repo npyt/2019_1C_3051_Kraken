@@ -93,6 +93,10 @@ namespace TGC.Group.Model
 
         TGCVector3 currentRot;
         TGCVector3 originalRot;
+        TGCVector3 directionXZ;
+        TGCVector3 directionYZ;
+        float prevAngleXZ = 0;
+        float prevAngleYZ = 0;
 
         // Textos 2D
         private TgcText2D tButtons;
@@ -120,6 +124,9 @@ namespace TGC.Group.Model
         private Drawer2D drawer2D;
         private CustomSprite superPowerSprite;
         private CustomSprite songProgressBarSprite;
+        private TGCMatrix superPowerSpriteScaling;
+        private TGCMatrix animation;
+        private TGCMatrix traslation;
 
         public override void Init()
         {
@@ -285,6 +292,11 @@ namespace TGC.Group.Model
             mp3Player = new TgcMp3Player();
             mp3Player.FileName = mp3Path;
             mp3Player.play(true);
+
+            animation = TGCMatrix.Identity;
+
+            directionXZ = TGCVector3.Empty;
+            directionYZ = TGCVector3.Empty;
         }
 
         public override void Update()
@@ -364,7 +376,7 @@ namespace TGC.Group.Model
                         penalty = true;
                         subPoints.Text = "X";
                     }
-                    
+
                     stat.addPoints(-10);
 
                     totalPointsGUItime = sum_elapsed;
@@ -452,12 +464,18 @@ namespace TGC.Group.Model
 
                 if (sum_elapsed - superPowerTime > 2.7f)
                 {
-                    superPowerSprite.Scaling = new TGCVector2(0.5f, 0.5f);
                     superPowerStatus = false;
                 }
             }
 
-        
+            superPowerSprite.Scaling = new TGCVector2(1f, 0.1f * ElapsedTime);
+            superPowerSprite.TransformationMatrix = TGCMatrix.Identity;
+            superPowerSpriteScaling = TGCMatrix.Scaling(superPowerSprite.Scaling.X, superPowerSprite.Scaling.Y, 1f);
+
+            superPowerSprite.TransformationMatrix = superPowerSpriteScaling * TGCMatrix.RotationZ(superPowerSprite.Rotation) * TGCMatrix.Translation(superPowerSprite.Position.X, superPowerSprite.Position.Y,0);
+
+
+
 
 
             // Movimiento de la godCamera con W A S D ESPACIO C
@@ -511,61 +529,55 @@ namespace TGC.Group.Model
             float angleXZ = 0;
             float angleYZ = 0;
 
-            TGCVector3 vectorA = new TGCVector3(shipMovement.X, 0, shipMovement.Z);
-            TGCVector3 vectorB = new TGCVector3(0, shipMovement.Y, shipMovement.Z);
+            TGCVector3 vectorMovementXZ = new TGCVector3(shipMovement.X, 0, shipMovement.Z);
+            TGCVector3 vectorMovementYZ = new TGCVector3(0, shipMovement.Y, shipMovement.Z);
 
-            TGCVector3 directionXZ = TGCVector3.Empty;
-            TGCVector3 directionYZ = TGCVector3.Empty;
+            if (vectorMovementXZ.Length() != 0)
+            {
+                directionXZ = TGCVector3.Normalize(vectorMovementXZ);
+            }
+            if (vectorMovementYZ.Length() != 0)
+            {
+                directionYZ = TGCVector3.Normalize(vectorMovementYZ);
+            }
 
-            if(vectorA.Length() != 0)
-            {
-                directionXZ = TGCVector3.Normalize(vectorA);
-            }
-            if(vectorB.Length() != 0)
-            {
-                directionYZ = TGCVector3.Normalize(vectorB);
-            }
-            
             angleXZ = -FastMath.Acos(TGCVector3.Dot(originalRot, directionXZ));
             angleYZ = -FastMath.Acos(TGCVector3.Dot(originalRot, directionYZ));
             if (directionXZ.X > 0)
             {
                 angleXZ *= -1;
             }
-            if (directionYZ.Y <0)
+            if (directionYZ.Y < 0)
             {
                 angleYZ *= -1;
             }
-            if(!float.IsNaN(angleXZ) && !float.IsNaN(angleYZ))
+            if (!float.IsNaN(angleXZ) && !float.IsNaN(angleYZ))
             {
-                float orRotY = Ship.Rotation.Y;
-                float angIntY = orRotY * (1.0f - 0.1f) + angleXZ * 0.1f;
+                if (angleXZ - prevAngleXZ < 0 && angleYZ - prevAngleYZ < 0)
+                {
+                    
+                    float orRotY = Ship.Rotation.Y;
+                    float angIntY = orRotY * (1.0f - 0.2f) + angleXZ * 0.2f;
 
-                float orRotX = Ship.Rotation.X;
-                float angIntX = orRotX * (1.0f - 0.1f) + angleYZ * 0.1f;
+                    float orRotX = Ship.Rotation.X;
+                    float angIntX = orRotX * (1.0f - 0.2f) + angleYZ * 0.2f;
+                    
+                    Ship.Rotation = new TGCVector3(angIntX, angIntY, 0);
+                    currentRot = directionXZ + directionYZ;
 
-                //Ship.Rotation = new TGCVector3(angIntX , angIntY , 0);
-
-                float originalRotationY = camaraInterna.RotationY;
-                float anguloIntermedio = originalRotationY * (1.0f - 0.03f) + angleXZ * 0.03f;
-                //camaraInterna.RotationY = anguloIntermedio ;
-                currentRot = directionXZ + directionYZ;
+                    float originalRotationY = camaraInterna.RotationY;
+                    float anguloIntermedio = originalRotationY * (1.0f - 0.07f) + angleXZ * 0.07f;
+                    camaraInterna.RotationY = anguloIntermedio;
+                }
+                prevAngleXZ = angleXZ;
+                prevAngleYZ = angleYZ;
             }
-            
-            // Test console de angulos
-            System.Diagnostics.Debug.WriteLine("DANIEEEEEEEEEEEEEL");
-            System.Diagnostics.Debug.WriteLine(angleXZ + "," + angleYZ);
-            System.Diagnostics.Debug.WriteLine(TGCVector3.Dot(originalRot, directionXZ) + "," + TGCVector3.Dot(originalRot, directionYZ));
-            System.Diagnostics.Debug.WriteLine(originalRot);
-            System.Diagnostics.Debug.WriteLine(directionXZ + "," + directionYZ);
 
             // Texto informativo de botones
             tButtons.Text = "CÁMARA: TAB \nMUSICA: M \nNOTAS: ESPACIO \nSUPERPODER: LEFT SHIFT \nDEVMOD: K \nOcultar ayuda con H";
 
             // Texto informativo del player
-
             totalPoints.Text = stat.totalPoints.ToString();
-            
             multiplyPointsGUI.Text = "x" + stat.totalMultiply;
 
             // Transformaciones

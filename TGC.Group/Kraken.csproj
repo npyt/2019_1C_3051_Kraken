@@ -122,6 +122,8 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Stat\Stat.cs" />
+    <Compile Include="VertexMovement\PowerBox.cs" />
+    <Compile Include="VertexMovement\TimeManager.cs" />
     <Compile Include="VertexMovement\VertexMovement.cs" />
     <EmbeddedResource Include="Form\GameForm.resx">
       <DependentUpon>GameForm.cs</DependentUpon>

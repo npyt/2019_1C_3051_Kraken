@@ -44,14 +44,18 @@ namespace TGC.Group.Model
         // Nave principal
         private TgcMesh Ship { get; set; }
         VertexMovementManager shipManager;
+
         bool gameRunning = false;
+        TimeManager gameTime = new TimeManager();
+        TimeManager totalTime = new TimeManager();
 
         // Lista de paths
         private List<TgcMesh> paths;
 
         // PowerBoxes
-        private List<TGCBox> power_boxes;
+        private List<PowerBox> power_boxes;
         private List<Boolean> power_boxes_states;
+        float powerBoxElaped = 0f;
 
         // GodBox (box para la camara god)
         private TGCBox godBox { get; set; }
@@ -86,10 +90,6 @@ namespace TGC.Group.Model
         // Movimiento y rotacion
         private const float MOVEMENT_SPEED = 52f;
         private const float VERTEX_MIN_DISTANCE = 0.3f;
-
-        float sum_elapsed = 0f;
-        int counter_elapsed = 0;
-        float medium_elapsed = 0f;
 
         private TGCBox test_hit { get; set; }
 
@@ -136,8 +136,6 @@ namespace TGC.Group.Model
             // GUI
             //Crear Sprite
             drawer2D = new Drawer2D();
-
-
 
             superPowerSprite = new CustomSprite();
             superPowerSprite.Bitmap = new CustomBitmap(MediaDir + "\\GUI\\superPowerBar.png", D3DDevice.Instance.Device);
@@ -187,7 +185,7 @@ namespace TGC.Group.Model
             // Listas de tracks, paths y powerBoxes
             tracks = new List<TgcMesh>();
             paths = new List<TgcMesh>();
-            power_boxes = new List<TGCBox>();
+            power_boxes = new List<PowerBox>();
             power_boxes_states = new List<Boolean>();
 
             // Device de DirectX para crear primitivas.
@@ -262,10 +260,8 @@ namespace TGC.Group.Model
             shipManager.init();
 
             // Init de poderes
-            addPowerBox();
-            addPowerBox();
-            addPowerBox();
-            addPowerBox();
+            addPowerBox(5000);
+            addPowerBox(10000);
 
             // SuperPower
             var sizeSuperPower = new TGCVector3(225, 1, 1);
@@ -306,8 +302,23 @@ namespace TGC.Group.Model
         {
             PreUpdate();
 
-            if(gameRunning)
+            totalTime.update(ElapsedTime);
+
+            powerBoxElaped += ElapsedTime;
+            if(powerBoxElaped > 1.5)
             {
+                foreach (PowerBox p in power_boxes)
+                {
+                    p.Position = getPositionAtMiliseconds(p.miliseconds_in_path);
+                }
+
+                powerBoxElaped = 0f;
+            }
+
+            if (gameRunning)
+            {
+                gameTime.update(ElapsedTime);
+
                 // Apretar M para activar musica
                 if (Input.keyPressed(Key.M))
                 {
@@ -323,17 +334,7 @@ namespace TGC.Group.Model
                     }
                 }
 
-
                 float rotate = 0;
-
-                counter_elapsed++;
-                sum_elapsed += ElapsedTime;
-                medium_elapsed = sum_elapsed / counter_elapsed;
-                if (counter_elapsed >= float.MaxValue / 2 | sum_elapsed >= float.MaxValue)
-                {
-                    sum_elapsed = 0f;
-                    counter_elapsed = 0;
-                }
 
                 // Para que no surja el artifact del skybox
                 D3DDevice.Instance.Device.Transform.Projection = TGCMatrix.PerspectiveFovLH(D3DDevice.Instance.FieldOfView, D3DDevice.Instance.AspectRatio,
@@ -358,8 +359,8 @@ namespace TGC.Group.Model
                                 stat.addMultiply();
                                 stat.addPoints(10);
 
-                                totalPointsGUItime = sum_elapsed;
-                                multiplyPointsGUItime = sum_elapsed;
+                                totalPointsGUItime = gameTime.sum_elapsed;
+                                multiplyPointsGUItime = gameTime.sum_elapsed;
                             }
                         }
                         else
@@ -385,15 +386,15 @@ namespace TGC.Group.Model
 
                         stat.addPoints(-10);
 
-                        totalPointsGUItime = sum_elapsed;
-                        penaltyTime = sum_elapsed;
-                        multiplyPointsGUItime = sum_elapsed;
+                        totalPointsGUItime = gameTime.sum_elapsed;
+                        penaltyTime = gameTime.sum_elapsed;
+                        multiplyPointsGUItime = gameTime.sum_elapsed;
                     }
                 }
 
                 if (penalty)
                 {
-                    if (sum_elapsed - penaltyTime > 0.5f)
+                    if (gameTime.sum_elapsed - penaltyTime > 0.5f)
                     {
                         penalty = false;
                     }
@@ -431,12 +432,12 @@ namespace TGC.Group.Model
                 // SuperPower al presionar SHIFT IZQUIERDO cada 2 segundos
                 if (Input.keyPressed(Key.LeftShift))
                 {
-                    if (sum_elapsed - superPowerTime > 3.0f || superPowerTime == 0)
+                    if (gameTime.sum_elapsed - superPowerTime > 3.0f || superPowerTime == 0)
                     {
                         stat.duplicatePoints();
                         superPowerStatus = true;
                         superPowerBox.Position = Ship.Position;
-                        superPowerTime = sum_elapsed;
+                        superPowerTime = gameTime.sum_elapsed;
 
                         powerManager = new VertexMovementManager(superPowerBox.Position, superPowerBox.Position, SUPERPOWER_MOVEMENT_SPEED, shipManager.vertex_pool);
                         powerManager.init();
@@ -449,7 +450,7 @@ namespace TGC.Group.Model
                     superPowerBox.Move(superPowerMovement);
 
 
-                    if (sum_elapsed - superPowerTime > 2.7f)
+                    if (gameTime.sum_elapsed - superPowerTime > 2.7f)
                     {
                         superPowerStatus = false;
                     }
@@ -609,7 +610,7 @@ namespace TGC.Group.Model
             if (developerModeGUI)
             {
                 DrawText.drawText("Ship Position: \n" + Ship.Position, 5, 20, Color.Yellow);
-                DrawText.drawText("Medium Elapsed: \n" + medium_elapsed, 145, 20, Color.Yellow);
+                DrawText.drawText("Medium Elapsed: \n" + gameTime.medium_elapsed, 145, 20, Color.Yellow);
                 DrawText.drawText("Camera Position: \n" + Camara.Position, 5, 100, Color.Yellow);
                 DrawText.drawText("Elapsed: \n" + ElapsedTime, 145, 60, Color.Yellow);
                 DrawText.drawText("PUNTAJE ACTUAL: " + stat.totalPoints +
@@ -617,7 +618,7 @@ namespace TGC.Group.Model
                 "\nMULTIPLICADOR PARCIAL: " + stat.partialMultiply +
                 "\nSUPERPODER: " + ((!superPowerStatus) ? "TRUÉ" : "FALSE" + ElapsedTime), 5, 180, Color.Yellow);
             }
-            DrawText.drawText("SumElapsed: \n" + sum_elapsed, 145, 100, Color.White);
+            DrawText.drawText("SumElapsed: \n" + gameTime.sum_elapsed, 145, 100, Color.White);
 
 
             StringFormat stringFormat = new StringFormat();
@@ -676,21 +677,32 @@ namespace TGC.Group.Model
             PostRender();
         }
 
-     /*   public TGCVector3 getPositionAtMiliseconds(float miliseconds)
+        public TGCVector3 getPositionAtMiliseconds(int miliseconds)
         {
-            if (medium_elapsed == 0)
+            if (gameTime.medium_elapsed == 0)
             {
                 return TGCVector3.Empty;
             }
 
-            List<TGCVector3> mypool = new List<TGCVector3>(permanent_pool);
-            TGCVector3 originalTarget = shipTarget;
+            List<TGCVector3> mypool = new List<TGCVector3>(shipManager.permanent_pool);
+            VertexMovementManager mymanager = new VertexMovementManager(TGCVector3.Empty, TGCVector3.Empty, MOVEMENT_SPEED, mypool);
+            mymanager.init();
+
+            float local_elapsed = 0;
             TGCVector3 simulated_ship_position = TGCVector3.Empty;
 
+            float ElapsedInAccount = 0.0018f;
+            //float ElapsedInAccount = gameTime.medium_elapsed;
 
-            shipTarget = originalTarget;
+            while (local_elapsed < miliseconds/1000)
+            {
+                simulated_ship_position.Add(mymanager.update(ElapsedInAccount, simulated_ship_position));
+                local_elapsed += ElapsedInAccount;
+            }
+
+            simulated_ship_position.Y += 3;
             return simulated_ship_position;
-        } */
+        }
 
         private void concatTrack(TgcMesh track, TgcMesh path)
         {
@@ -718,20 +730,20 @@ namespace TGC.Group.Model
             shipManager.addVertexCollection(path.getVertexPositions(), lastVertex);
         }
 
-        private void addPowerBox()
+        private void addPowerBox(int miliseconds)
         {
             var pathTexturaCaja = MediaDir + "Test\\Textures\\white_wall.jpg";
             var texture = TgcTexture.createTexture(pathTexturaCaja);
 
+            TGCVector3 position = getPositionAtMiliseconds(miliseconds);
+
             var sizePowerBox = new TGCVector3(8, 1, 8);
-            TGCBox powerbox = TGCBox.fromSize(sizePowerBox, texture);
+            PowerBox powerbox = new PowerBox(miliseconds);
+            powerbox.setPositionSize(TGCVector3.Empty, sizePowerBox);
             powerbox.Color = Color.Pink;
-            TGCVector3 randomPosition = shipManager.vertex_pool[(new Random(Guid.NewGuid().GetHashCode())).Next(shipManager.vertex_pool.Count)];
-            randomPosition.Y = randomPosition.Y + 3;
-            powerbox.Position = randomPosition;
+            powerbox.Position = position;
             powerbox.Transform = TGCMatrix.Identity;
-            powerbox.updateValues();
-            
+            powerbox.updateValues();            
 
             power_boxes.Add(powerbox);
             power_boxes_states.Add(false);

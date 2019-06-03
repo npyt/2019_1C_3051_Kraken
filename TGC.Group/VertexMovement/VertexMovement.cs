@@ -14,7 +14,7 @@ namespace TGC.Group.VertexMovement
         float MOVEMENT_SPEED;
 
         public List<TGCVector3> vertex_pool { get; set; }
-        List<TGCVector3> permanent_pool { get; set; }
+        public List<TGCVector3> permanent_pool { get; set; }
 
         public VertexMovementManager (TGCVector3 pos, TGCVector3 tar, float SPEED)
         {

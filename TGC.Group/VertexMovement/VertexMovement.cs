@@ -25,6 +25,15 @@ namespace TGC.Group.VertexMovement
             permanent_pool = new List<TGCVector3>();
         }
 
+        public VertexMovementManager(TGCVector3 pos, TGCVector3 tar, float SPEED, List<TGCVector3> pool)
+        {
+            position = pos;
+            target = tar;
+            MOVEMENT_SPEED = SPEED;
+            vertex_pool = new List<TGCVector3>(pool);
+            permanent_pool = new List<TGCVector3>(pool);
+        }
+
         public void init()
         {
             target = findNextTarget(vertex_pool);

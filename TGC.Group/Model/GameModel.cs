@@ -44,6 +44,7 @@ namespace TGC.Group.Model
         // Nave principal
         private TgcMesh Ship { get; set; }
         VertexMovementManager shipManager;
+        bool gameRunning = false;
 
         // Lista de paths
         private List<TgcMesh> paths;
@@ -60,6 +61,7 @@ namespace TGC.Group.Model
         private bool superPowerStatus;
         private float superPowerTime;
         private const float SUPERPOWER_MOVEMENT_SPEED = 152f;
+        VertexMovementManager powerManager;
 
         // Lista de tracks
         private List<TgcMesh> tracks;
@@ -240,6 +242,7 @@ namespace TGC.Group.Model
             
             // Asignar target inicial a la ship
             shipManager = new VertexMovementManager(Ship.Position, Ship.Position, MOVEMENT_SPEED);
+            powerManager = null;
 
             // Init de tracks
             concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\new_track01-TgcScene.xml").Meshes[0],
@@ -292,7 +295,6 @@ namespace TGC.Group.Model
             mp3Path = MediaDir + "Music\\BattlefieldMagicSword.wav";
             mp3Player = new TgcMp3Player();
             mp3Player.FileName = mp3Path;
-            mp3Player.play(true);
 
             animation = TGCMatrix.Identity;
 
@@ -304,297 +306,284 @@ namespace TGC.Group.Model
         {
             PreUpdate();
 
-
-            // Apretar M para activar musica
-            if (Input.keyPressed(Key.M))
+            if(gameRunning)
             {
-                if (mp3Player.getStatus() == TgcMp3Player.States.Playing)
+                // Apretar M para activar musica
+                if (Input.keyPressed(Key.M))
                 {
-                    //Pausar el MP3
-                    mp3Player.pause();
-                } else if (mp3Player.getStatus() == TgcMp3Player.States.Paused)
-                {
-                    //Resumir la ejecución del MP3
-                    mp3Player.resume();
-                }
-            }
-
-
-            float rotate = 0;
-
-            counter_elapsed++;
-            sum_elapsed += ElapsedTime;
-            medium_elapsed = sum_elapsed / counter_elapsed;
-            if (counter_elapsed >= float.MaxValue / 2 | sum_elapsed >= float.MaxValue)
-            {
-                sum_elapsed = 0f;
-                counter_elapsed = 0;
-            }
-
-            // Para que no surja el artifact del skybox
-            D3DDevice.Instance.Device.Transform.Projection = TGCMatrix.PerspectiveFovLH(D3DDevice.Instance.FieldOfView, D3DDevice.Instance.AspectRatio,
-                    D3DDevice.Instance.ZNearPlaneDistance, D3DDevice.Instance.ZFarPlaneDistance * 2f).ToMatrix();
-
-            // Deteccion entre poderes y ship al apretar ESPACIO
-            if (Input.keyPressed(Key.Space))
-            {
-                int noTouching = 0;
-                for (int a = 0; a < power_boxes.Count; a++)
-                {
-                    TGCBox ShortPowerBox = power_boxes[a];
-                    if (TgcCollisionUtils.testAABBAABB(Ship.BoundingBox, power_boxes[a].BoundingBox))
+                    if (mp3Player.getStatus() == TgcMp3Player.States.Playing)
                     {
-                        //power_boxes[a].Color = Color.Yellow;
-                        //power_boxes[a].updateValues();
-                        power_boxes[a].Color = Color.Red;
-                        power_boxes[a].updateValues();
-                        if (!power_boxes_states[a])
-                        {
-                            power_boxes_states[a] = true;
-                            stat.addMultiply();
-                            stat.addPoints(10);
+                        //Pausar el MP3
+                        mp3Player.pause();
+                    }
+                    else if (mp3Player.getStatus() == TgcMp3Player.States.Paused)
+                    {
+                        //Resumir la ejecución del MP3
+                        mp3Player.resume();
+                    }
+                }
 
-                            totalPointsGUItime = sum_elapsed;
-                            multiplyPointsGUItime = sum_elapsed;
+
+                float rotate = 0;
+
+                counter_elapsed++;
+                sum_elapsed += ElapsedTime;
+                medium_elapsed = sum_elapsed / counter_elapsed;
+                if (counter_elapsed >= float.MaxValue / 2 | sum_elapsed >= float.MaxValue)
+                {
+                    sum_elapsed = 0f;
+                    counter_elapsed = 0;
+                }
+
+                // Para que no surja el artifact del skybox
+                D3DDevice.Instance.Device.Transform.Projection = TGCMatrix.PerspectiveFovLH(D3DDevice.Instance.FieldOfView, D3DDevice.Instance.AspectRatio,
+                        D3DDevice.Instance.ZNearPlaneDistance, D3DDevice.Instance.ZFarPlaneDistance * 2f).ToMatrix();
+
+                // Deteccion entre poderes y ship al apretar ESPACIO
+                if (Input.keyPressed(Key.Space))
+                {
+                    int noTouching = 0;
+                    for (int a = 0; a < power_boxes.Count; a++)
+                    {
+                        TGCBox ShortPowerBox = power_boxes[a];
+                        if (TgcCollisionUtils.testAABBAABB(Ship.BoundingBox, power_boxes[a].BoundingBox))
+                        {
+                            //power_boxes[a].Color = Color.Yellow;
+                            //power_boxes[a].updateValues();
+                            power_boxes[a].Color = Color.Red;
+                            power_boxes[a].updateValues();
+                            if (!power_boxes_states[a])
+                            {
+                                power_boxes_states[a] = true;
+                                stat.addMultiply();
+                                stat.addPoints(10);
+
+                                totalPointsGUItime = sum_elapsed;
+                                multiplyPointsGUItime = sum_elapsed;
+                            }
                         }
+                        else
+                        {
+                            noTouching++;
+                            power_boxes[a].updateValues();
+                        }
+                    }
+                    if (noTouching == power_boxes.Count)
+                    {
+
+                        stat.cancelMultiply();
+                        if (stat.totalPoints != 0)
+                        {
+                            subPoints.Text = "-10";
+                            penalty = true;
+                        }
+                        else if (stat.totalPoints == 0)
+                        {
+                            penalty = true;
+                            subPoints.Text = "X";
+                        }
+
+                        stat.addPoints(-10);
+
+                        totalPointsGUItime = sum_elapsed;
+                        penaltyTime = sum_elapsed;
+                        multiplyPointsGUItime = sum_elapsed;
+                    }
+                }
+
+                if (penalty)
+                {
+                    if (sum_elapsed - penaltyTime > 0.5f)
+                    {
+                        penalty = false;
+                    }
+                }
+
+                // Activar bounding box al presionar F
+                if (Input.keyPressed(Key.F))
+                {
+                    BoundingBox = !BoundingBox;
+                }
+
+                // Cambiar cámara al presionar TAB
+                if (Input.keyPressed(Key.Tab))
+                {
+                    if (Camara.Equals(camaraInterna))
+                    {
+                        Camara = godCamera;
                     }
                     else
                     {
-                        noTouching++;
-                        power_boxes[a].updateValues();
+                        Camara = camaraInterna;
+                    };
+                }
+
+                if (Input.keyPressed(Key.H))
+                {
+                    helpGUI = !helpGUI;
+                }
+
+                if (Input.keyPressed(Key.K))
+                {
+                    developerModeGUI = !developerModeGUI;
+                }
+
+                // SuperPower al presionar SHIFT IZQUIERDO cada 2 segundos
+                if (Input.keyPressed(Key.LeftShift))
+                {
+                    if (sum_elapsed - superPowerTime > 3.0f || superPowerTime == 0)
+                    {
+                        stat.duplicatePoints();
+                        superPowerStatus = true;
+                        superPowerBox.Position = Ship.Position;
+                        superPowerTime = sum_elapsed;
+
+                        powerManager = new VertexMovementManager(superPowerBox.Position, superPowerBox.Position, SUPERPOWER_MOVEMENT_SPEED, shipManager.vertex_pool);
+                        powerManager.init();
                     }
                 }
-                if (noTouching == power_boxes.Count)
-                {
 
-                    stat.cancelMultiply();
-                    if (stat.totalPoints != 0)
+                if (superPowerStatus)
+                {
+                    var superPowerMovement = powerManager.update(ElapsedTime, superPowerBox.Position);
+                    superPowerBox.Move(superPowerMovement);
+
+
+                    if (sum_elapsed - superPowerTime > 2.7f)
                     {
-                        subPoints.Text = "-10";
-                        penalty = true;
-                    } else if (stat.totalPoints == 0)
-                    {
-                        penalty = true;
-                        subPoints.Text = "X";
+                        superPowerStatus = false;
                     }
+                }
 
-                    stat.addPoints(-10);
+                superPowerSprite.Scaling = new TGCVector2(1f, 0.1f * ElapsedTime);
+                superPowerSprite.TransformationMatrix = TGCMatrix.Identity;
+                superPowerSpriteScaling = TGCMatrix.Scaling(superPowerSprite.Scaling.X, superPowerSprite.Scaling.Y, 1f);
 
-                    totalPointsGUItime = sum_elapsed;
-                    penaltyTime = sum_elapsed;
-                    multiplyPointsGUItime = sum_elapsed;
+                superPowerSprite.TransformationMatrix = superPowerSpriteScaling * TGCMatrix.RotationZ(superPowerSprite.Rotation) * TGCMatrix.Translation(superPowerSprite.Position.X, superPowerSprite.Position.Y, 0);
+
+                // Movimiento de la godCamera con W A S D ESPACIO C
+                var movementGod = TGCVector3.Empty;
+                float moveForward = 0;
+
+                if (Camara.Equals(godCamera))
+                {
+                    if (Input.keyDown(Key.Up) || Input.keyDown(Key.W))
+                    {
+                        moveForward = 1;
+                    }
+                    else if (Input.keyDown(Key.Down) || Input.keyDown(Key.S))
+                    {
+                        moveForward = -1;
+                    }
+                    else if (Input.keyDown(Key.Space))
+                    {
+                        movementGod.Y = 1 * ElapsedTime * MOVEMENT_SPEED;
+                    }
+                    else if (Input.keyDown(Key.C))
+                    {
+                        movementGod.Y = -1 * ElapsedTime * MOVEMENT_SPEED;
+                    }
+                    else if (Input.keyDown(Key.D) || Input.keyPressed(Key.Right))
+                    {
+                        rotate = 2 * ElapsedTime;
+
+                    }
+                    else if (Input.keyDown(Key.A) || Input.keyPressed(Key.Left))
+                    {
+                        rotate = -2 * ElapsedTime;
+                    }
+                }
+
+                // Rotación de la GodCamera
+                godBox.Rotation += new TGCVector3(0, rotate, 0);
+                godCamera.rotateY(rotate);
+                float moveF = moveForward * ElapsedTime * MOVEMENT_SPEED;
+                movementGod.Z = (float)Math.Cos(godBox.Rotation.Y) * moveF;
+                movementGod.X = (float)Math.Sin(godBox.Rotation.Y) * moveF;
+
+                godBox.Move(movementGod);
+
+                // Movimiento de la nave (Ship)
+                shipMovement = shipManager.update(ElapsedTime, Ship.Position);
+                Ship.Move(shipMovement);
+
+                // Rotacion de la camara junto a la Ship por el camino
+                float angleXZ = 0;
+                float angleYZ = 0;
+
+                TGCVector3 vectorMovementXZ = new TGCVector3(shipMovement.X, 0, shipMovement.Z);
+                TGCVector3 vectorMovementYZ = new TGCVector3(0, shipMovement.Y, shipMovement.Z);
+
+                if (vectorMovementXZ.Length() != 0)
+                {
+                    directionXZ = TGCVector3.Normalize(vectorMovementXZ);
+                }
+                if (vectorMovementYZ.Length() != 0)
+                {
+                    directionYZ = TGCVector3.Normalize(vectorMovementYZ);
+                }
+
+                angleXZ = -FastMath.Acos(TGCVector3.Dot(originalRot, directionXZ));
+                angleYZ = -FastMath.Acos(TGCVector3.Dot(originalRot, directionYZ));
+                if (directionXZ.X > 0)
+                {
+                    angleXZ *= -1;
+                }
+                if (directionYZ.Y < 0)
+                {
+                    angleYZ *= -1;
+                }
+                if (!float.IsNaN(angleXZ) && !float.IsNaN(angleYZ))
+                {
+                    if (angleXZ - prevAngleXZ < 0 && angleYZ - prevAngleYZ < 0)
+                    {
+
+                        float orRotY = Ship.Rotation.Y;
+                        float angIntY = orRotY * (1.0f - 0.2f) + angleXZ * 0.2f;
+
+                        float orRotX = Ship.Rotation.X;
+                        float angIntX = orRotX * (1.0f - 0.2f) + angleYZ * 0.2f;
+
+                        Ship.Rotation = new TGCVector3(angIntX, angIntY, 0);
+                        currentRot = directionXZ + directionYZ;
+
+                        float originalRotationY = camaraInterna.RotationY;
+                        float anguloIntermedio = originalRotationY * (1.0f - 0.07f) + angleXZ * 0.07f;
+                        camaraInterna.RotationY = anguloIntermedio;
+                    }
+                    prevAngleXZ = angleXZ;
+                    prevAngleYZ = angleYZ;
+                }
+
+                // Texto informativo de botones
+                tButtons.Text = "CÁMARA: TAB \nMUSICA: M \nNOTAS: ESPACIO \nSUPERPODER: LEFT SHIFT \nDEVMOD: K \nOcultar ayuda con H";
+
+                // Texto informativo del player
+                totalPoints.Text = stat.totalPoints.ToString();
+                multiplyPointsGUI.Text = "x" + stat.totalMultiply;
+
+                // Transformaciones
+                Ship.Transform = TGCMatrix.Scaling(Ship.Scale) * TGCMatrix.RotationYawPitchRoll(Ship.Rotation.Y, Ship.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(Ship.Position);
+                godBox.Transform = TGCMatrix.Scaling(godBox.Scale) * TGCMatrix.RotationYawPitchRoll(godBox.Rotation.Y, godBox.Rotation.X, godBox.Rotation.Z) * TGCMatrix.Translation(godBox.Position);
+                superPowerBox.Transform = TGCMatrix.Scaling(superPowerBox.Scale) * TGCMatrix.RotationYawPitchRoll(superPowerBox.Rotation.Y, superPowerBox.Rotation.X, superPowerBox.Rotation.Z) * TGCMatrix.Translation(superPowerBox.Position);
+
+                for (int a = 0; a < power_boxes.Count; a++)
+                {
+                    TGCBox ShortPowerBox = power_boxes[a];
+                    ShortPowerBox.Transform = TGCMatrix.Scaling(ShortPowerBox.Scale) * TGCMatrix.RotationYawPitchRoll(ShortPowerBox.Rotation.Y, ShortPowerBox.Rotation.X, ShortPowerBox.Rotation.Z) * TGCMatrix.Translation(ShortPowerBox.Position);
+                }
+                test_hit.Transform = TGCMatrix.Scaling(test_hit.Scale) * TGCMatrix.RotationYawPitchRoll(test_hit.Rotation.Y, test_hit.Rotation.X, test_hit.Rotation.Z) * TGCMatrix.Translation(test_hit.Position);
+
+                // Posición de cámaras
+                camaraInterna.TargetDisplacement = Ship.Position + shipMovement;
+                godCamera.Target = godBox.Position;
+            } else
+            {
+                if (Input.keyPressed(Key.J)) {
+                    gameRunning = true;
+                    mp3Player.play(true);
                 }
             }
-
-            if (penalty)
-            {
-                if (sum_elapsed - penaltyTime > 0.5f)
-                {
-                    penalty = false;
-                }
-            }
-
-            // Activar bounding box al presionar F
-            if (Input.keyPressed(Key.F))
-            {
-                BoundingBox = !BoundingBox;
-            }
-
-            // Cambiar cámara al presionar TAB
-            if (Input.keyPressed(Key.Tab))
-            {
-                if (Camara.Equals(camaraInterna))
-                {
-                    Camara = godCamera;
-                }
-                else
-                {
-                    Camara = camaraInterna;
-                };
-            }
-
-            // SuperPower al presionar SHIFT IZQUIERDO cada 2 segundos
-            if (Input.keyPressed(Key.LeftShift))
-            {
-                if (sum_elapsed - superPowerTime > 3.0f || superPowerTime == 0)
-                {
-                    stat.duplicatePoints();
-                    superPowerStatus = true;
-                    superPowerBox.Position = Ship.Position;
-                    superPowerTime = sum_elapsed;
-
-
-                }
-            }
-
-            if (Input.keyPressed(Key.H))
-            {
-                helpGUI = !helpGUI;
-            }
-
-            if (Input.keyPressed(Key.K))
-            {
-                developerModeGUI = !developerModeGUI;
-            }
-            if (superPowerStatus)
-            {
-
-                var superPowerMovement = TGCVector3.Empty;
-                var superPowerOriginalPos = Ship.Position;
-
-                //superPowerMovement = shipTarget;
-                superPowerMovement.Subtract(superPowerOriginalPos);
-
-                if (superPowerMovement.Length() < (SUPERPOWER_MOVEMENT_SPEED * ElapsedTime))
-                {
-                    //   superPowerMovement = shipTarget;
-                    superPowerMovement.Subtract(superPowerOriginalPos);
-                } else
-                {
-                    superPowerMovement.Normalize();
-                    superPowerMovement.Multiply(SUPERPOWER_MOVEMENT_SPEED * ElapsedTime);
-
-                }
-                //test_hit.Position = getPositionAtMiliseconds(1000);
-                if (superPowerMovement.Length() < (SUPERPOWER_MOVEMENT_SPEED * ElapsedTime) / 2)
-                {
-                    //   shipTarget = findNextTarget(vertex_pool);
-                }
-                superPowerBox.Move(superPowerMovement);
-
-
-                if (sum_elapsed - superPowerTime > 2.7f)
-                {
-                    superPowerStatus = false;
-                }
-            }
-
-            superPowerSprite.Scaling = new TGCVector2(1f, 0.1f * ElapsedTime);
-            superPowerSprite.TransformationMatrix = TGCMatrix.Identity;
-            superPowerSpriteScaling = TGCMatrix.Scaling(superPowerSprite.Scaling.X, superPowerSprite.Scaling.Y, 1f);
-
-            superPowerSprite.TransformationMatrix = superPowerSpriteScaling * TGCMatrix.RotationZ(superPowerSprite.Rotation) * TGCMatrix.Translation(superPowerSprite.Position.X, superPowerSprite.Position.Y,0);
-
-
-
-
-
-            // Movimiento de la godCamera con W A S D ESPACIO C
-            var movementGod = TGCVector3.Empty;
-            float moveForward = 0;
-
-            if (Camara.Equals(godCamera))
-            {
-                if (Input.keyDown(Key.Up) || Input.keyDown(Key.W))
-                {
-                    moveForward = 1;
-                }
-                else if (Input.keyDown(Key.Down) || Input.keyDown(Key.S))
-                {
-                    moveForward = -1;
-                }
-                else if (Input.keyDown(Key.Space))
-                {
-                    movementGod.Y = 1 * ElapsedTime * MOVEMENT_SPEED;
-                }
-                else if (Input.keyDown(Key.C))
-                {
-                    movementGod.Y = -1 * ElapsedTime * MOVEMENT_SPEED;
-                }
-                else if (Input.keyDown(Key.D) || Input.keyPressed(Key.Right))
-                {
-                    rotate = 2 * ElapsedTime;
-
-                }
-                else if (Input.keyDown(Key.A) || Input.keyPressed(Key.Left))
-                {
-                    rotate = -2 * ElapsedTime;
-                }
-            }
-            
-            // Rotación de la GodCamera
-            godBox.Rotation += new TGCVector3(0, rotate, 0);
-            godCamera.rotateY(rotate);
-            float moveF = moveForward * ElapsedTime * MOVEMENT_SPEED;
-            movementGod.Z = (float)Math.Cos(godBox.Rotation.Y) * moveF;
-            movementGod.X = (float)Math.Sin(godBox.Rotation.Y) * moveF;
-
-            godBox.Move(movementGod);
-
-            // Movimiento de la nave (Ship)
-            shipMovement = shipManager.update(ElapsedTime, Ship.Position);
-            Ship.Move(shipMovement);
-
-            // Rotacion de la camara junto a la Ship por el camino
-            float angleXZ = 0;
-            float angleYZ = 0;
-
-            TGCVector3 vectorMovementXZ = new TGCVector3(shipMovement.X, 0, shipMovement.Z);
-            TGCVector3 vectorMovementYZ = new TGCVector3(0, shipMovement.Y, shipMovement.Z);
-
-            if (vectorMovementXZ.Length() != 0)
-            {
-                directionXZ = TGCVector3.Normalize(vectorMovementXZ);
-            }
-            if (vectorMovementYZ.Length() != 0)
-            {
-                directionYZ = TGCVector3.Normalize(vectorMovementYZ);
-            }
-
-            angleXZ = -FastMath.Acos(TGCVector3.Dot(originalRot, directionXZ));
-            angleYZ = -FastMath.Acos(TGCVector3.Dot(originalRot, directionYZ));
-            if (directionXZ.X > 0)
-            {
-                angleXZ *= -1;
-            }
-            if (directionYZ.Y < 0)
-            {
-                angleYZ *= -1;
-            }
-            if (!float.IsNaN(angleXZ) && !float.IsNaN(angleYZ))
-            {
-                if (angleXZ - prevAngleXZ < 0 && angleYZ - prevAngleYZ < 0)
-                {
-                    
-                    float orRotY = Ship.Rotation.Y;
-                    float angIntY = orRotY * (1.0f - 0.2f) + angleXZ * 0.2f;
-
-                    float orRotX = Ship.Rotation.X;
-                    float angIntX = orRotX * (1.0f - 0.2f) + angleYZ * 0.2f;
-                    
-                    Ship.Rotation = new TGCVector3(angIntX, angIntY, 0);
-                    currentRot = directionXZ + directionYZ;
-
-                    float originalRotationY = camaraInterna.RotationY;
-                    float anguloIntermedio = originalRotationY * (1.0f - 0.07f) + angleXZ * 0.07f;
-                    camaraInterna.RotationY = anguloIntermedio;
-                }
-                prevAngleXZ = angleXZ;
-                prevAngleYZ = angleYZ;
-            }
-
-            // Texto informativo de botones
-            tButtons.Text = "CÁMARA: TAB \nMUSICA: M \nNOTAS: ESPACIO \nSUPERPODER: LEFT SHIFT \nDEVMOD: K \nOcultar ayuda con H";
-
-            // Texto informativo del player
-            totalPoints.Text = stat.totalPoints.ToString();
-            multiplyPointsGUI.Text = "x" + stat.totalMultiply;
-
-            // Transformaciones
-            Ship.Transform = TGCMatrix.Scaling(Ship.Scale) * TGCMatrix.RotationYawPitchRoll(Ship.Rotation.Y, Ship.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(Ship.Position);
-            godBox.Transform = TGCMatrix.Scaling(godBox.Scale) * TGCMatrix.RotationYawPitchRoll(godBox.Rotation.Y, godBox.Rotation.X, godBox.Rotation.Z) * TGCMatrix.Translation(godBox.Position);
-            superPowerBox.Transform = TGCMatrix.Scaling(superPowerBox.Scale) * TGCMatrix.RotationYawPitchRoll(superPowerBox.Rotation.Y, superPowerBox.Rotation.X, superPowerBox.Rotation.Z) * TGCMatrix.Translation(superPowerBox.Position);
-
-            for (int a = 0; a < power_boxes.Count; a++)
-            {
-                TGCBox ShortPowerBox = power_boxes[a];
-                ShortPowerBox.Transform = TGCMatrix.Scaling(ShortPowerBox.Scale) * TGCMatrix.RotationYawPitchRoll(ShortPowerBox.Rotation.Y, ShortPowerBox.Rotation.X, ShortPowerBox.Rotation.Z) * TGCMatrix.Translation(ShortPowerBox.Position);
-            }
-            test_hit.Transform = TGCMatrix.Scaling(test_hit.Scale) * TGCMatrix.RotationYawPitchRoll(test_hit.Rotation.Y, test_hit.Rotation.X, test_hit.Rotation.Z) * TGCMatrix.Translation(test_hit.Position);
-
-            // Posición de cámaras
-            camaraInterna.TargetDisplacement = Ship.Position+ shipMovement ;
-            godCamera.Target = godBox.Position;
 
 
             PostUpdate();

@@ -58,7 +58,7 @@ namespace TGC.Group.Model
         // PowerBoxes
         private List<PowerBox> power_boxes;
         private List<Boolean> power_boxes_states;
-        float powerBoxElaped = 0f;
+        float powerBoxElapsed = 0f;
 
         // GodBox (box para la camara god)
         private TGCBox godBox { get; set; }

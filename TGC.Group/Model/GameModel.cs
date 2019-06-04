@@ -285,7 +285,7 @@ namespace TGC.Group.Model
 
             totalTime.update(ElapsedTime);
 
-            powerBoxElaped += ElapsedTime;
+            /*powerBoxElaped += ElapsedTime;
             if(powerBoxElaped > 1.5)
             {
                 foreach (PowerBox p in power_boxes)
@@ -294,7 +294,7 @@ namespace TGC.Group.Model
                 }
 
                 powerBoxElaped = 0f;
-            }
+            }*/
 
             if (gameRunning)
             {
@@ -670,17 +670,19 @@ namespace TGC.Group.Model
 
         public TGCVector3 getPositionAtMiliseconds(int miliseconds)
         {
-            if (gameTime.medium_elapsed == 0)
+            /*if (gameTime.medium_elapsed == 0)
             {
                 return TGCVector3.Empty;
-            }
+            }*/
 
-            List<TGCVector3> mypool = new List<TGCVector3>(shipManager.permanent_pool);
-            VertexMovementManager mymanager = new VertexMovementManager(TGCVector3.Empty, TGCVector3.Empty, MOVEMENT_SPEED, mypool);
-            mymanager.init();
-
+            List<TGCVector3> mypool = null;
             float local_elapsed = 0;
             TGCVector3 simulated_ship_position = TGCVector3.Empty;
+
+            mypool = new List<TGCVector3>(shipManager.permanent_pool);
+
+            VertexMovementManager mymanager = new VertexMovementManager(simulated_ship_position, simulated_ship_position, MOVEMENT_SPEED, mypool);
+            mymanager.init();
 
             float ElapsedInAccount = 0.0018f;
             //float ElapsedInAccount = gameTime.medium_elapsed;
@@ -734,7 +736,7 @@ namespace TGC.Group.Model
             powerbox.Color = Color.Pink;
             powerbox.Position = position;
             powerbox.Transform = TGCMatrix.Identity;
-            powerbox.updateValues();            
+            powerbox.updateValues();
 
             power_boxes.Add(powerbox);
             power_boxes_states.Add(false);
@@ -751,10 +753,14 @@ namespace TGC.Group.Model
                 values_track[i] = values_track[i].Trim('\"');
                 concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\new_track" + values_track[i] + "-TgcScene.xml").Meshes[0],
                     loader.loadSceneFromFile(MediaDir + "Test\\new_path" + values_track[i] + "-TgcScene.xml").Meshes[0]);
+
+                System.Diagnostics.Debug.WriteLine(i + " / " + values_track.Length);
             }
+            System.Diagnostics.Debug.WriteLine("Track Ready");
 
             // Asignar proximo target de la nave
             shipManager.init();
+            System.Diagnostics.Debug.WriteLine("Ship Manager Ready");
 
             // Init de poderes
             string csv_hits = File.ReadAllText(MediaDir + "Levels\\" + name + "\\hits.csv", Encoding.UTF8);
@@ -766,13 +772,17 @@ namespace TGC.Group.Model
                 {
                     values_hits[i] = values_hits[i].Trim('\"');
                     addPowerBox(int.Parse(values_hits[i]));
+                    System.Diagnostics.Debug.WriteLine(i + " / " + values_hits.Length);
                 }
-            }            
+            }
+            System.Diagnostics.Debug.WriteLine("Hits Ready");
 
             // Musica
             mp3Path = MediaDir + "Levels\\" + name + "\\music.wav";
             mp3Player = new TgcMp3Player();
             mp3Player.FileName = mp3Path;
+            System.Diagnostics.Debug.WriteLine("Music Ready");
+            System.Diagnostics.Debug.WriteLine("LEVEL READY");
         }
 
         public override void Dispose()

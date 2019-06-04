@@ -18,6 +18,9 @@ using TGC.Group.Core2d;
 using System.Collections.Generic;
 using TGC.Group.VertexMovement;
 using System.Windows.Forms;
+using System.IO;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace TGC.Group.Model
 {
@@ -242,26 +245,7 @@ namespace TGC.Group.Model
             shipManager = new VertexMovementManager(Ship.Position, Ship.Position, MOVEMENT_SPEED);
             powerManager = null;
 
-            // Init de tracks
-            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\new_track01-TgcScene.xml").Meshes[0],
-                loader.loadSceneFromFile(MediaDir + "Test\\new_path01-TgcScene.xml").Meshes[0]);
-            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\new_track02-TgcScene.xml").Meshes[0],
-                loader.loadSceneFromFile(MediaDir + "Test\\new_path02-TgcScene.xml").Meshes[0]);
-            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\new_track03-TgcScene.xml").Meshes[0],
-                loader.loadSceneFromFile(MediaDir + "Test\\new_path03-TgcScene.xml").Meshes[0]);
-            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\new_track01-TgcScene.xml").Meshes[0],
-                loader.loadSceneFromFile(MediaDir + "Test\\new_path01-TgcScene.xml").Meshes[0]);
-            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\new_track02-TgcScene.xml").Meshes[0],
-                loader.loadSceneFromFile(MediaDir + "Test\\new_path02-TgcScene.xml").Meshes[0]);
-            concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\new_track03-TgcScene.xml").Meshes[0],
-                loader.loadSceneFromFile(MediaDir + "Test\\new_path03-TgcScene.xml").Meshes[0]);
-
-            // Asignar proximo target de la nave
-            shipManager.init();
-
-            // Init de poderes
-            addPowerBox(5000);
-            addPowerBox(10000);
+            loadLevel(loader, "001");
 
             // SuperPower
             var sizeSuperPower = new TGCVector3(225, 1, 1);
@@ -287,16 +271,13 @@ namespace TGC.Group.Model
             skyBox.SkyEpsilon = 25f;
             skyBox.Init();
 
-            // Musica
-            mp3Path = MediaDir + "Music\\BattlefieldMagicSword.wav";
-            mp3Player = new TgcMp3Player();
-            mp3Player.FileName = mp3Path;
-
             animation = TGCMatrix.Identity;
 
             directionXZ = TGCVector3.Empty;
             directionYZ = TGCVector3.Empty;
         }
+
+        string csv_out = "";
 
         public override void Update()
         {
@@ -332,6 +313,16 @@ namespace TGC.Group.Model
                         //Resumir la ejecución del MP3
                         mp3Player.resume();
                     }
+                }
+
+                if(Input.keyPressed(Key.S))
+                {
+                    System.IO.File.WriteAllText(MediaDir + "\\hits_output.csv", csv_out);
+                }
+
+                if(Input.keyPressed(Key.U))
+                {
+                    csv_out += ((int)(gameTime.sum_elapsed * 1000)) + ";";
                 }
 
                 float rotate = 0;
@@ -747,6 +738,41 @@ namespace TGC.Group.Model
 
             power_boxes.Add(powerbox);
             power_boxes_states.Add(false);
+        }
+
+        public void loadLevel(TgcSceneLoader loader, string name)
+        {
+            // Init de tracks
+            string csv_track = File.ReadAllText(MediaDir + "Levels\\" + name + "\\track.csv", Encoding.UTF8);
+            string separator_track = ";";
+            string[] values_track = Regex.Split(csv_track, separator_track);
+            for (int i = 0; i < values_track.Length; i++)
+            {
+                values_track[i] = values_track[i].Trim('\"');
+                concatTrack(loader.loadSceneFromFile(MediaDir + "Test\\new_track" + values_track[i] + "-TgcScene.xml").Meshes[0],
+                    loader.loadSceneFromFile(MediaDir + "Test\\new_path" + values_track[i] + "-TgcScene.xml").Meshes[0]);
+            }
+
+            // Asignar proximo target de la nave
+            shipManager.init();
+
+            // Init de poderes
+            string csv_hits = File.ReadAllText(MediaDir + "Levels\\" + name + "\\hits.csv", Encoding.UTF8);
+            if(csv_hits != "")
+            {
+                string separator_hits = ";";
+                string[] values_hits = Regex.Split(csv_hits, separator_hits);
+                for (int i = 0; i < values_hits.Length; i++)
+                {
+                    values_hits[i] = values_hits[i].Trim('\"');
+                    addPowerBox(int.Parse(values_hits[i]));
+                }
+            }            
+
+            // Musica
+            mp3Path = MediaDir + "Levels\\" + name + "\\music.wav";
+            mp3Player = new TgcMp3Player();
+            mp3Player.FileName = mp3Path;
         }
 
         public override void Dispose()

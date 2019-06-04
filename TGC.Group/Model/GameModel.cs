@@ -215,8 +215,9 @@ namespace TGC.Group.Model
             var loader = new TgcSceneLoader();
 
             // Nave
-            Ship = loader.loadSceneFromFile(MediaDir + "Test\\ship_soft-TgcScene.xml").Meshes[0];
-            Ship.Move(0, 10, 0);
+            Ship = loader.loadSceneFromFile(MediaDir + "Test\\ship-TgcScene.xml").Meshes[0];
+            Ship.Move(0, 20, 0);
+            Ship.Scale = new TGCVector3(0.75f, 0.75f, -0.75f);
             originalRot = new TGCVector3(0, 0, 1);
             currentRot = originalRot;
 
@@ -233,7 +234,7 @@ namespace TGC.Group.Model
             mMarte.Move(0, 0, 0);
 
             // Camara a la ship
-            camaraInterna = new TgcThirdPersonCamera(Ship.Position, shipMovement + Ship.Position, 10, -35);
+            camaraInterna = new TgcThirdPersonCamera(Ship.Position, shipMovement + Ship.Position, 15, -60);
 
             // Camara god
             godCamera = new TgcThirdPersonCamera(godBox.Position, 60, -135);

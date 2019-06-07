@@ -117,9 +117,12 @@ namespace TGC.Group.StateMachine
         private TGCMatrix animation;
         private TGCMatrix traslation;
 
-        public GameState(GameModel mparent) : base(mparent)
-        {
+        private string levelFolder;
 
+        public GameState(GameModel mparent, string folder) : base(mparent)
+        {
+            levelFolder = folder;
+            init();
         }
 
         public override void init()
@@ -233,7 +236,7 @@ namespace TGC.Group.StateMachine
             shipManager = new VertexMovementManager(Ship.Position, Ship.Position, MOVEMENT_SPEED);
             powerManager = null;
 
-            loadLevel(loader, "001");
+            loadLevel(loader, levelFolder);
 
             // SuperPower
             var sizeSuperPower = new TGCVector3(225, 1, 1);
@@ -359,23 +362,12 @@ namespace TGC.Group.StateMachine
                 powerBoxElaped = 0f;
             }*/
 
-            if (gameRunning)
-            {
                 gameTime.update(ElapsedTime);
 
                 // Apretar M para activar musica
-                if (parent.Input.keyPressed(Key.M))
+                if(mp3Player.getStatus() == TgcMp3Player.States.Stopped)
                 {
-                    if (mp3Player.getStatus() == TgcMp3Player.States.Playing)
-                    {
-                        //Pausar el MP3
-                        mp3Player.pause();
-                    }
-                    else if (mp3Player.getStatus() == TgcMp3Player.States.Paused)
-                    {
-                        //Resumir la ejecución del MP3
-                        mp3Player.resume();
-                    }
+                    parent.returnToMenu();
                 }
 
                 if (parent.Input.keyPressed(Key.S))
@@ -632,15 +624,7 @@ namespace TGC.Group.StateMachine
                 // Posición de cámaras
                 camaraInterna.TargetDisplacement = Ship.Position + shipMovement;
                 godCamera.Target = godBox.Position;
-            }
-            else
-            {
-                if (parent.Input.keyPressed(Key.J))
-                {
-                    gameRunning = true;
-                    mp3Player.play(true);
-                }
-            }
+
         }
 
         public override void dispose()
@@ -766,6 +750,8 @@ namespace TGC.Group.StateMachine
             mp3Path = parent.MediaDir + "Levels\\" + name + "\\music.wav";
             mp3Player = new TgcMp3Player();
             mp3Player.FileName = mp3Path;
+            mp3Player.play(false);
+
             System.Diagnostics.Debug.WriteLine("Music Ready");
             System.Diagnostics.Debug.WriteLine("LEVEL READY");
         }

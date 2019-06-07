@@ -36,6 +36,9 @@ namespace TGC.Group.Model
 
         public Drawer2D drawer2D;
         GameState gameState;
+        MenuState menuState;
+
+        State currentState;
 
         /// <summary>
         ///     Constructor del juego.
@@ -53,8 +56,9 @@ namespace TGC.Group.Model
         {
 
             drawer2D = new Drawer2D();
-            gameState = new GameState(this);
-            gameState.init();
+            menuState = new MenuState(this);
+
+            currentState = menuState;
             
         }
 
@@ -62,7 +66,8 @@ namespace TGC.Group.Model
         {
             PreUpdate();
 
-            gameState.update(ElapsedTime);
+            if(currentState != null)
+                currentState.update(ElapsedTime);
 
             PostUpdate();
         }
@@ -72,9 +77,21 @@ namespace TGC.Group.Model
             //Inicio el render de la escena, para ejemplos simples. Cuando tenemos postprocesado o shaders es mejor realizar las operaciones según nuestra conveniencia.
             PreRender();
 
-            gameState.render(ElapsedTime);
+            if (currentState != null)
+                currentState.render(ElapsedTime);
 
             PostRender();
+        }
+
+        public void selectLevel(string folder)
+        {
+            gameState = new GameState(this, folder);
+            currentState = gameState;
+        }
+
+        public void returnToMenu()
+        {
+            currentState = menuState;
         }
 
         public override void Dispose()

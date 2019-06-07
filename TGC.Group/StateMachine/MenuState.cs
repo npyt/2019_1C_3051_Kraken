@@ -110,7 +110,7 @@ namespace TGC.Group.StateMachine
             if (parent.Input.keyPressed(Key.RightControl))
             {
                 mp3Player.stop();
-                mp3Player.FileName = null;
+                mp3Player.closeFile();
                 mp3Player = null;
                 parent.selectLevel(folders[selectedLevel]);
             }

@@ -367,6 +367,7 @@ namespace TGC.Group.StateMachine
                 // Apretar M para activar musica
                 if(mp3Player.getStatus() == TgcMp3Player.States.Stopped)
                 {
+                    mp3Player.closeFile();
                     parent.returnToMenu();
                 }
 

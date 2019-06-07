@@ -45,9 +45,6 @@ namespace TGC.Group.StateMachine
             loadLevelList();
 
             mp3Path = parent.MediaDir + "Music\\menumusic.wav";
-            mp3Player = new TgcMp3Player();
-            mp3Player.FileName = mp3Path;
-            mp3Player.play(true);
 
             logoSprite = new CustomSprite();
             logoSprite.Bitmap = new CustomBitmap(parent.MediaDir + "\\Logo.png", D3DDevice.Instance.Device);
@@ -91,8 +88,10 @@ namespace TGC.Group.StateMachine
 
         public override void update(float ElapsedTime)
         {
-            if(mp3Player.getStatus() == TgcMp3Player.States.Stopped)
+            if(mp3Player == null)
             {
+                mp3Player = new TgcMp3Player();
+                mp3Player.FileName = mp3Path;
                 mp3Player.play(true);
             }
 
@@ -110,8 +109,10 @@ namespace TGC.Group.StateMachine
             }
             if (parent.Input.keyPressed(Key.RightControl))
             {
-                parent.selectLevel(folders[selectedLevel]);
                 mp3Player.stop();
+                mp3Player.FileName = null;
+                mp3Player = null;
+                parent.selectLevel(folders[selectedLevel]);
             }
         }
 

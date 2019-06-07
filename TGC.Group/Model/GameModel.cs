@@ -40,6 +40,8 @@ namespace TGC.Group.Model
 
         State currentState;
 
+        public Font defaultFont = new Font("Verdana", 10, FontStyle.Regular);
+
         /// <summary>
         ///     Constructor del juego.
         /// </summary>

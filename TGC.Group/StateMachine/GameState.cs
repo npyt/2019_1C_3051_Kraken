@@ -207,12 +207,12 @@ namespace TGC.Group.StateMachine
 
             // Nave
             Ship = loader.loadSceneFromFile(parent.MediaDir + "Test\\ship-TgcScene.xml").Meshes[0];
-            Ship.Move(0, 0, 0);
+            Ship.Move(0, 5, 0);
             Ship.Scale = new TGCVector3(0.75f, 0.75f, -0.75f);
             originalRot = new TGCVector3(0, 0, 1);
             currentRot = originalRot;
             ShipCollision = TGCBox.fromSize(new TGCVector3(1, 10, 1));
-            ShipCollision.Move(new TGCVector3(0, 5, 0));
+            ShipCollision.Move(new TGCVector3(0, 10, 0));
             ShipCollision.Scale = Ship.Scale;
 
             // Tierra
@@ -309,8 +309,7 @@ namespace TGC.Group.StateMachine
             Ship.Render();
             for (int a = 0; a < tracks.Count; a++)
             {
-                if(TgcCollisionUtils.testAABBAABB(ShipCollision.BoundingBox, tracks[a].BoundingBox))
-                    tracks[a].Render();
+                tracks[a].Render();
             }
             mTierra.Render();
             mSol.Render();

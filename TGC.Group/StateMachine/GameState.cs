@@ -30,6 +30,7 @@ namespace TGC.Group.StateMachine
     {
         // Nave principal
         private TgcMesh Ship { get; set; }
+        TGCBox ShipCollision { get; set; }
         VertexMovementManager shipManager;
 
         bool gameRunning = false;
@@ -206,10 +207,13 @@ namespace TGC.Group.StateMachine
 
             // Nave
             Ship = loader.loadSceneFromFile(parent.MediaDir + "Test\\ship-TgcScene.xml").Meshes[0];
-            Ship.Move(0, 20, 0);
+            Ship.Move(0, 0, 0);
             Ship.Scale = new TGCVector3(0.75f, 0.75f, -0.75f);
             originalRot = new TGCVector3(0, 0, 1);
             currentRot = originalRot;
+            ShipCollision = TGCBox.fromSize(new TGCVector3(1, 10, 1));
+            ShipCollision.Move(new TGCVector3(0, 5, 0));
+            ShipCollision.Scale = Ship.Scale;
 
             // Tierra
             mTierra = loader.loadSceneFromFile(parent.MediaDir + "Test\\pSphere1-TgcScene.xml").Meshes[0];
@@ -305,11 +309,14 @@ namespace TGC.Group.StateMachine
             Ship.Render();
             for (int a = 0; a < tracks.Count; a++)
             {
-                tracks[a].Render();
+                if(TgcCollisionUtils.testAABBAABB(ShipCollision.BoundingBox, tracks[a].BoundingBox))
+                    tracks[a].Render();
             }
             mTierra.Render();
             mSol.Render();
             mMarte.Render();
+
+            ShipCollision.BoundingBox.Render();
 
             totalPoints.render();
             multiplyPointsGUI.render();
@@ -394,7 +401,7 @@ namespace TGC.Group.StateMachine
                     for (int a = 0; a < power_boxes.Count; a++)
                     {
                         TGCBox ShortPowerBox = power_boxes[a];
-                        if (TgcCollisionUtils.testAABBAABB(Ship.BoundingBox, power_boxes[a].BoundingBox))
+                        if (TgcCollisionUtils.testAABBAABB(ShipCollision.BoundingBox, power_boxes[a].BoundingBox))
                         {
                             //power_boxes[a].Color = Color.Yellow;
                             //power_boxes[a].updateValues();
@@ -554,6 +561,7 @@ namespace TGC.Group.StateMachine
                 // Movimiento de la nave (Ship)
                 shipMovement = shipManager.update(ElapsedTime, Ship.Position);
                 Ship.Move(shipMovement);
+                ShipCollision.Move(shipMovement);
 
                 // Rotacion de la camara junto a la Ship por el camino
                 float angleXZ = 0;
@@ -593,6 +601,7 @@ namespace TGC.Group.StateMachine
                         float angIntX = orRotX * (1.0f - 0.2f) + angleYZ * 0.2f;
 
                         Ship.Rotation = new TGCVector3(angIntX, angIntY, 0);
+                        ShipCollision.Rotation = Ship.Rotation;
                         currentRot = directionXZ + directionYZ;
 
                         float originalRotationY = camaraInterna.RotationY;
@@ -612,6 +621,7 @@ namespace TGC.Group.StateMachine
 
                 // Transformaciones
                 Ship.Transform = TGCMatrix.Scaling(Ship.Scale) * TGCMatrix.RotationYawPitchRoll(Ship.Rotation.Y, Ship.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(Ship.Position);
+                ShipCollision.Transform = TGCMatrix.Scaling(Ship.Scale) * TGCMatrix.RotationYawPitchRoll(Ship.Rotation.Y, Ship.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(Ship.Position);
                 godBox.Transform = TGCMatrix.Scaling(godBox.Scale) * TGCMatrix.RotationYawPitchRoll(godBox.Rotation.Y, godBox.Rotation.X, godBox.Rotation.Z) * TGCMatrix.Translation(godBox.Position);
                 superPowerBox.Transform = TGCMatrix.Scaling(superPowerBox.Scale) * TGCMatrix.RotationYawPitchRoll(superPowerBox.Rotation.Y, superPowerBox.Rotation.X, superPowerBox.Rotation.Z) * TGCMatrix.Translation(superPowerBox.Position);
 

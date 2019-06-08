@@ -10,14 +10,20 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using TGC.Core.Direct3D;
 using TGC.Core.Mathematica;
+using TGC.Core.SceneLoader;
 using TGC.Core.Sound;
+using TGC.Core.Terrain;
+using TGC.Group.Camara;
 using TGC.Group.Core2d;
 using TGC.Group.Model;
+using TGC.Group.VertexMovement;
 
 namespace TGC.Group.StateMachine
 {
     class MenuState : State
     {
+        public TimeManager gameTime = new TimeManager();
+
         List<string> folders = new List<string>();
         List<string> names = new List<string>();
         int selectedLevel = 0;
@@ -26,6 +32,10 @@ namespace TGC.Group.StateMachine
         private CustomSprite bgSprite;
 
         Font fontMenu;
+
+        TgcMesh Ship;
+        TgcThirdPersonCamera myCamera;
+        TgcSkyBox skyBox;
 
         private TgcMp3Player mp3Player;
         String mp3Path;
@@ -58,14 +68,40 @@ namespace TGC.Group.StateMachine
             bgSprite.Position = new TGCVector2(-30, 0);
 
             fontMenu = new Font("BigNoodleTitling", 30, FontStyle.Regular);
+            
+            var loader = new TgcSceneLoader();
+
+            // Nave
+            Ship = loader.loadSceneFromFile(parent.MediaDir + "Test\\ship-TgcScene.xml").Meshes[0];
+            Ship.Move(0, 0, 0);
+            Ship.Scale = new TGCVector3(1f, 1f, -1f);
+
+            skyBox = new TgcSkyBox();
+            skyBox.Center = TGCVector3.Empty;
+            skyBox.Size = new TGCVector3(20000, 20000, 20000);
+            skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Up, parent.MediaDir + "\\dims.jpg");
+            skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Down, parent.MediaDir + "\\dims.jpg");
+            skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Left, parent.MediaDir + "\\dims.jpg");
+            skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Right, parent.MediaDir + "\\dims.jpg");
+            skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Front, parent.MediaDir + "\\dims.jpg");
+            skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Back, parent.MediaDir + "\\dims.jpg");
+            skyBox.SkyEpsilon = 25f;
+            skyBox.Init();
+
+            myCamera = new TgcThirdPersonCamera(Ship.Position, 60, -135);
+            parent.Camara = myCamera;
         }
 
         public override void render(float ElapsedTime)
         {
             parent.drawer2D.BeginDrawSprite();
-            parent.drawer2D.DrawSprite(bgSprite);
             parent.drawer2D.DrawSprite(logoSprite);
             parent.drawer2D.EndDrawSprite();
+
+            skyBox.Render();
+
+            D3DDevice.Instance.Device.Transform.Projection = TGCMatrix.PerspectiveFovLH(D3DDevice.Instance.FieldOfView, D3DDevice.Instance.AspectRatio,
+                    D3DDevice.Instance.ZNearPlaneDistance, D3DDevice.Instance.ZFarPlaneDistance * 2f).ToMatrix();
 
             int sx = Screen.PrimaryScreen.Bounds.Size.Width / 2;
             int sy = Screen.PrimaryScreen.Bounds.Size.Height / 2;
@@ -84,10 +120,14 @@ namespace TGC.Group.StateMachine
                 sy += 40;
             }
             parent.DrawText.changeFont(parent.defaultFont);
+
+            Ship.Render();
         }
 
         public override void update(float ElapsedTime)
         {
+            gameTime.update(ElapsedTime);
+
             if(mp3Player == null)
             {
                 mp3Player = new TgcMp3Player();
@@ -114,6 +154,11 @@ namespace TGC.Group.StateMachine
                 mp3Player = null;
                 parent.selectLevel(folders[selectedLevel]);
             }
+
+            Ship.Move(new TGCVector3(0, TGC.Core.Mathematica.FastMath.Sin(gameTime.sum_elapsed * 1.5f) * 0.3f, 0));
+            Ship.RotateY(gameTime.counter_elapsed * 0.000003f);
+
+            Ship.Transform = TGCMatrix.Scaling(Ship.Scale) * TGCMatrix.RotationYawPitchRoll(Ship.Rotation.Y, Ship.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(Ship.Position);
         }
 
         private void loadLevelList()

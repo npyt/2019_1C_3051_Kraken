@@ -37,9 +37,6 @@ namespace TGC.Group.StateMachine
         TimeManager gameTime = new TimeManager();
         TimeManager totalTime = new TimeManager();
 
-        // Lista de paths
-        private List<TgcMesh> paths;
-
         // PowerBoxes
         private List<PowerBox> power_boxes;
         private List<Boolean> power_boxes_states;
@@ -57,6 +54,13 @@ namespace TGC.Group.StateMachine
 
         // Lista de tracks
         private List<TgcMesh> tracks;
+        private List<TgcMesh> blooms;
+        private List<Boolean> tracks_is_curve;
+
+        // Lista de paths
+        private List<TgcMesh> paths;
+
+        int q_blocks, q_curves;
 
         // Mesh: tierra
         private TgcMesh mTierra { get; set; }
@@ -178,6 +182,8 @@ namespace TGC.Group.StateMachine
 
             // Listas de tracks, paths y powerBoxes
             tracks = new List<TgcMesh>();
+            blooms = new List<TgcMesh>();
+            tracks_is_curve = new List<bool>();
             paths = new List<TgcMesh>();
             power_boxes = new List<PowerBox>();
             power_boxes_states = new List<Boolean>();
@@ -310,6 +316,7 @@ namespace TGC.Group.StateMachine
             for (int a = 0; a < tracks.Count; a++)
             {
                 tracks[a].Render();
+                // blooms[a].Render(); OJO, PONGO ESTO PARA PODER HACER EL EFECTO
             }
             mTierra.Render();
             mSol.Render();
@@ -676,7 +683,7 @@ namespace TGC.Group.StateMachine
             return simulated_ship_position;
         }
 
-        private void concatTrack(TgcMesh track, TgcMesh path)
+        private void concatTrack(TgcMesh track, TgcMesh path, TgcMesh bloom, Boolean isCurve)
         {
             TGCVector3 lastVertex = TGCVector3.Empty;
 
@@ -695,6 +702,11 @@ namespace TGC.Group.StateMachine
 
             track.Move(lastVertex);
             tracks.Add(track);
+
+            bloom.Move(lastVertex);
+            blooms.Add(bloom);
+
+            tracks_is_curve.Add(isCurve);
 
             path.Move(lastVertex);
             paths.Add(path);
@@ -723,19 +735,28 @@ namespace TGC.Group.StateMachine
 
         public void loadLevel(TgcSceneLoader loader, string name)
         {
-            // Init de tracks
-            string csv_track = File.ReadAllText(parent.MediaDir + "Levels\\" + name + "\\track.csv", Encoding.UTF8);
-            string separator_track = ";";
-            string[] values_track = Regex.Split(csv_track, separator_track);
-            for (int i = 0; i < values_track.Length; i++)
-            {
-                values_track[i] = values_track[i].Trim('\"');
-                concatTrack(loader.loadSceneFromFile(parent.MediaDir + "Test\\new_track" + values_track[i] + "-TgcScene.xml").Meshes[0],
-                    loader.loadSceneFromFile(parent.MediaDir + "Test\\new_path" + values_track[i] + "-TgcScene.xml").Meshes[0]);
+            string csv_config = File.ReadAllText(parent.MediaDir + "Tracks\\config.csv", Encoding.UTF8);
+            string separator_config = ";";
+            string[] values_config = Regex.Split(csv_config, separator_config);
+            q_blocks = int.Parse(values_config[0]);
+            q_curves = int.Parse(values_config[1]);
 
-                System.Diagnostics.Debug.WriteLine(i + " / " + values_track.Length);
+            Random r = new Random();
+
+            // Init de tracks
+            for (int i = 0; i < 20; i++)
+            {
+
+                Boolean isCurve = r.Next() % 2 == 0;
+                int number = (isCurve) ? r.Next(q_curves) + 1 : r.Next(q_blocks) + 1;
+                string file_name = number + "_";
+                string folder = (isCurve) ? "Tracks\\Curves\\" : "Tracks\\Blocks\\";
+
+                concatTrack(loader.loadSceneFromFile(parent.MediaDir + folder + file_name + "track.xml").Meshes[0],
+                            loader.loadSceneFromFile(parent.MediaDir + folder + file_name + "path.xml").Meshes[0],
+                            loader.loadSceneFromFile(parent.MediaDir + folder + file_name + "bloom.xml").Meshes[0],
+                            isCurve);
             }
-            System.Diagnostics.Debug.WriteLine("Track Ready");
 
             // Asignar proximo target de la nave
             shipManager.init();

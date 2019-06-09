@@ -452,6 +452,21 @@ namespace TGC.Group.StateMachine
                     }
                 }
 
+                if(parent.Input.keyPressed(Key.B))
+                {
+                    for (int a = 0; a < tracks.Count; a++)
+                    {
+                        if (tracks_is_curve[a])
+                        {
+                            if(TgcCollisionUtils.testAABBAABB(ShipCollision.BoundingBox, tracks[a].BoundingBox))
+                            {
+                                curve_hitted();
+                                tracks_is_curve[a] = false;
+                            }
+                        }
+                    }
+                }
+
                 if (penalty)
                 {
                     if (gameTime.sum_elapsed - penaltyTime > 0.5f)
@@ -644,6 +659,11 @@ namespace TGC.Group.StateMachine
 
         }
 
+        private void curve_hitted()
+        {
+            //TODO SUMAR PUNTOS AL PRESIONAR B EN CURVA
+        }
+
         public override void dispose()
         {
             /*Ship.Dispose();
@@ -746,7 +766,6 @@ namespace TGC.Group.StateMachine
             // Init de tracks
             for (int i = 0; i < 20; i++)
             {
-
                 Boolean isCurve = r.Next() % 2 == 0;
                 int number = (isCurve) ? r.Next(q_curves) + 1 : r.Next(q_blocks) + 1;
                 string file_name = number + "_";

@@ -215,6 +215,7 @@
     <Content Include="Media\Ciudad\Textures\White Wall.JPG" />
     <Content Include="Media\Ciudad\Textures\Yellow Painted.jpg" />
     <Content Include="Media\LogoTGC-TgcScene.xml" />
+    <Content Include="Shaders\ShipShader.fx" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

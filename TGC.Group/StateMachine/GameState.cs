@@ -23,6 +23,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using TGC.Core.Camara;
 using TGC.Group.Model;
+using TGC.Core.Shaders;
+using Font = System.Drawing.Font;
 
 namespace TGC.Group.StateMachine
 {
@@ -32,6 +34,7 @@ namespace TGC.Group.StateMachine
         private TgcMesh Ship { get; set; }
         TGCBox ShipCollision { get; set; }
         VertexMovementManager shipManager;
+        private Microsoft.DirectX.Direct3D.Effect shipEffect;
 
         bool gameRunning = false;
         TimeManager gameTime = new TimeManager();
@@ -221,6 +224,12 @@ namespace TGC.Group.StateMachine
             ShipCollision.Move(new TGCVector3(0, 10, 0));
             ShipCollision.Scale = Ship.Scale;
 
+            shipEffect = TGCShaders.Instance.LoadEffect(parent.ShadersDir + "ShipShader.fx");
+            Ship.Effect = shipEffect;
+            Ship.Technique = "RenderScene";
+            //shipEffect.SetValue("diffuseMap", Ship.DiffuseMaps[0]);
+
+
             // Tierra
             mTierra = loader.loadSceneFromFile(parent.MediaDir + "Test\\pSphere1-TgcScene.xml").Meshes[0];
             mTierra.Move(0, 0, 0);
@@ -362,6 +371,12 @@ namespace TGC.Group.StateMachine
 
         public override void update(float ElapsedTime)
         {
+            shipEffect.SetValue("camaraX", camaraInterna.Target.X - camaraInterna.Position.X);
+
+            shipEffect.SetValue("camaraY", camaraInterna.Target.Y - camaraInterna.Position.Y);
+
+            shipEffect.SetValue("camaraZ", camaraInterna.Target.Z - camaraInterna.Position.Z);
+
             totalTime.update(ElapsedTime);
 
             /*powerBoxElaped += ElapsedTime;

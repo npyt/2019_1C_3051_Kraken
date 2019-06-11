@@ -95,6 +95,19 @@ technique VERTEX_COLOR
 /**************************************************************************************/
 /* DIFFUSE_MAP */
 /**************************************************************************************/
+float4 AmbientColor = float4(1, 1, 1, 1);
+float AmbientIntensity = 0.1;
+
+float4x4 WorldInverseTranspose;
+
+float3 DiffuseLightDirection = float3(0, 1, -1);
+float4 DiffuseColor = float4(1, 1, 1, 1);
+float DiffuseIntensity = 1.0;
+
+float Shininess = 200;
+float4 SpecularColor = float4(1, 1, 1, 1);    
+float SpecularIntensity = 1;
+float3 ViewVector = float3(0, 1, 0.3);
 
 //Input del Vertex Shader
 struct VS_INPUT_DIFFUSE_MAP
@@ -111,6 +124,7 @@ struct VS_OUTPUT_DIFFUSE_MAP
 	float4 Position : POSITION0;
 	float4 Color : COLOR;
 	float2 Texcoord : TEXCOORD0;
+	float3 Normal : NORMAL0;
 };
 
 //Vertex Shader
@@ -122,10 +136,14 @@ VS_OUTPUT_DIFFUSE_MAP vs_DiffuseMap(VS_INPUT_DIFFUSE_MAP input)
 	output.Position = mul(input.Position, matWorldViewProj);
 
 	//Enviar color directamente
-	output.Color = input.Color;
+	float4 normal = mul(input.Normal, matInverseTransposeWorld);
+    float lightIntensity = dot(normal, DiffuseLightDirection);
+    output.Color = saturate(DiffuseColor * DiffuseIntensity * lightIntensity);
 
 	//Enviar Texcoord directamente
 	output.Texcoord = input.Texcoord;
+
+	 output.Normal = normal;
 
 	return output;
 }
@@ -135,13 +153,22 @@ struct PS_DIFFUSE_MAP
 {
 	float4 Color : COLOR;
 	float2 Texcoord : TEXCOORD0;
+	float3 Normal : TEXCOORD0;
 };
 
 //Pixel Shader
 float4 ps_DiffuseMap(PS_DIFFUSE_MAP input) : COLOR0
 {
+	float3 light = normalize(DiffuseLightDirection);
+    float3 normal = normalize(input.Normal);
+    float3 r = normalize(2 * dot(light, normal) * normal - light);
+    float3 v = normalize(mul(normalize(ViewVector), matWorld));
+
+    float dotProduct = dot(r, v);
+    float4 specular = SpecularIntensity * SpecularColor * max(pow(dotProduct, Shininess), 0) * length(input.Color);
+
 	//Modular color de la textura por color del mesh
-	return tex2D(diffuseMap, input.Texcoord) * input.Color;
+	return saturate(tex2D(diffuseMap, input.Texcoord) * input.Color + AmbientColor * AmbientIntensity + specular);
 }
 
 /*
@@ -186,9 +213,11 @@ VS_OUTPUT_DIFFUSE_MAP_AND_LIGHTMAP vs_diffuseMapAndLightmap(VS_INPUT_DIFFUSE_MAP
 
 	//Proyectar posicion
 	output.Position = mul(input.Position, matWorldViewProj);
+	float4 normal = mul(input.Normal, matInverseTransposeWorld);
+    float lightIntensity = dot(normal, DiffuseLightDirection);
 
 	//Enviar color directamente
-	output.Color = input.Color;
+    output.Color = saturate(DiffuseColor * DiffuseIntensity * lightIntensity);
 
 	//Enviar Texcoord directamente
 	output.Texcoord = input.Texcoord;
@@ -213,7 +242,7 @@ float4 ps_diffuseMapAndLightmap(PS_INPUT_DIFFUSE_MAP_AND_LIGHTMAP input) : COLOR
 	float4 lightmapColor = tex2D(lightMap, input.TexcoordLightmap);
 
 	//Modular ambos colores por color del mesh
-	return albedo * lightmapColor * input.Color;
+	return saturate(albedo * lightmapColor * input.Color + AmbientColor * AmbientIntensity);
 }
 
 //technique DIFFUSE_MAP_AND_LIGHTMAP

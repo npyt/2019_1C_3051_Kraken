@@ -11,8 +11,10 @@ using System.Windows.Forms;
 using TGC.Core.Direct3D;
 using TGC.Core.Mathematica;
 using TGC.Core.SceneLoader;
+using TGC.Core.Shaders;
 using TGC.Core.Sound;
 using TGC.Core.Terrain;
+using TGC.Core.Textures;
 using TGC.Group.Camara;
 using TGC.Group.Core2d;
 using TGC.Group.Model;
@@ -34,11 +36,14 @@ namespace TGC.Group.StateMachine
         Font fontMenu;
 
         TgcMesh Ship;
+        private Microsoft.DirectX.Direct3D.Effect shipEffect;
         TgcThirdPersonCamera myCamera;
         TgcSkyBox skyBox;
 
         private TgcMp3Player mp3Player;
         String mp3Path;
+
+        Microsoft.DirectX.Direct3D.Texture g_pRenderTarget;
 
         public MenuState(GameModel mparent) : base(mparent)
         {
@@ -68,13 +73,27 @@ namespace TGC.Group.StateMachine
             bgSprite.Position = new TGCVector2(-30, 0);
 
             fontMenu = new Font("BigNoodleTitling", 30, FontStyle.Regular);
-            
+
             var loader = new TgcSceneLoader();
 
             // Nave
             Ship = loader.loadSceneFromFile(parent.MediaDir + "Test\\ship-TgcScene.xml").Meshes[0];
             Ship.Move(0, 0, 0);
             Ship.Scale = new TGCVector3(1f, 1f, -1f);
+
+            
+            shipEffect = TGCShaders.Instance.LoadEffect(parent.ShadersDir + "ShipShader.fx");
+            Ship.Effect = shipEffect;
+            Ship.Technique = "RenderScene";
+            
+
+            /*
+            var d3dDevice = D3DDevice.Instance.Device;
+            g_pRenderTarget = new Microsoft.DirectX.Direct3D.Texture(d3dDevice, d3dDevice.PresentationParameters.BackBufferWidth
+                , d3dDevice.PresentationParameters.BackBufferHeight, 1, Microsoft.DirectX.Direct3D.Usage.RenderTarget,
+                Microsoft.DirectX.Direct3D.Format.X8R8G8B8, Microsoft.DirectX.Direct3D.Pool.Default);
+                */
+            //shipEffect.SetValue("diffuseMap", diffuse);
 
             skyBox = new TgcSkyBox();
             skyBox.Center = TGCVector3.Empty;
@@ -87,9 +106,13 @@ namespace TGC.Group.StateMachine
             skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Back, parent.MediaDir + "\\dims.jpg");
             skyBox.SkyEpsilon = 25f;
             skyBox.Init();
+            
 
             myCamera = new TgcThirdPersonCamera(Ship.Position, 60, -135);
             parent.Camara = myCamera;
+
+
+            
         }
 
         public override void render(float ElapsedTime)
@@ -126,6 +149,12 @@ namespace TGC.Group.StateMachine
 
         public override void update(float ElapsedTime)
         {
+            shipEffect.SetValue("camaraX", myCamera.Target.X - myCamera.Position.X);
+
+            shipEffect.SetValue("camaraY", myCamera.Target.Y - myCamera.Position.Y);
+
+            shipEffect.SetValue("camaraZ", myCamera.Target.Z - myCamera.Position.Z);
+
             gameTime.update(ElapsedTime);
 
             if(mp3Player == null)

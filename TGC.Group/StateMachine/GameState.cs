@@ -35,6 +35,9 @@ namespace TGC.Group.StateMachine
         TGCBox ShipCollision { get; set; }
         VertexMovementManager shipManager;
         private Microsoft.DirectX.Direct3D.Effect shipEffect;
+        private Microsoft.DirectX.Direct3D.Effect planetEffect;
+        private Microsoft.DirectX.Direct3D.Effect skyEffect;
+        private Microsoft.DirectX.Direct3D.Effect trackEffect;
 
         bool gameRunning = false;
         TimeManager gameTime = new TimeManager();
@@ -71,6 +74,8 @@ namespace TGC.Group.StateMachine
         private TgcMesh mSol { get; set; }
         // Mesh: marte
         private TgcMesh mMarte { get; set; }
+        // Mesh: skydome
+        private TgcMesh mSky { get; set; }
 
         // Camara principal (tercera persona)
         private TgcThirdPersonCamera camaraInterna;
@@ -230,17 +235,39 @@ namespace TGC.Group.StateMachine
             //shipEffect.SetValue("diffuseMap", Ship.DiffuseMaps[0]);
 
 
+            trackEffect = TGCShaders.Instance.LoadEffect(parent.ShadersDir + "TrackShader.fx");
+
+
+            planetEffect = TGCShaders.Instance.LoadEffect(parent.ShadersDir + "PlanetShader.fx");
+
             // Tierra
             mTierra = loader.loadSceneFromFile(parent.MediaDir + "Test\\pSphere1-TgcScene.xml").Meshes[0];
             mTierra.Move(0, 0, 0);
+
+            skyEffect = TGCShaders.Instance.LoadEffect(parent.ShadersDir + "SkyShader.fx");
+
+
+            mSky = loader.loadSceneFromFile(parent.MediaDir + "Test\\pSphere4-TgcScene.xml").Meshes[0];
+            mSky.Move(0, 0, 0);
+            mSky.Scale = new TGCVector3(2,2,2);
+
+            mSky.Effect = skyEffect;
+            mSky.Technique = "RenderScene";
 
             // Sol
             mSol = loader.loadSceneFromFile(parent.MediaDir + "Test\\pSphere3-TgcScene.xml").Meshes[0];
             mSol.Move(0, 0, 0);
 
+            mSol.Effect = planetEffect;
+            mSol.Technique = "RenderScene";
+
             // Marte
             mMarte = loader.loadSceneFromFile(parent.MediaDir + "Test\\pSphere2-TgcScene.xml").Meshes[0];
             mMarte.Move(0, 0, 0);
+
+            mMarte.Effect = planetEffect;
+            mMarte.Technique = "RenderScene";
+
 
             // Camara a la ship
             camaraInterna = new TgcThirdPersonCamera(Ship.Position, shipMovement + Ship.Position, 15, -60);
@@ -320,7 +347,7 @@ namespace TGC.Group.StateMachine
             stringFormat.LineAlignment = StringAlignment.Center;  // Vertical Alignment
 
             // Renders
-            skyBox.Render();
+            //skyBox.Render();
             Ship.Render();
             for (int a = 0; a < tracks.Count; a++)
             {
@@ -330,6 +357,7 @@ namespace TGC.Group.StateMachine
             mTierra.Render();
             mSol.Render();
             mMarte.Render();
+            mSky.Render();
 
             ShipCollision.BoundingBox.Render();
 
@@ -734,6 +762,9 @@ namespace TGC.Group.StateMachine
                     }
                 }
             }
+
+            track.Effect = trackEffect;
+            track.Technique = "RenderScene";
 
             track.Move(lastVertex);
             tracks.Add(track);

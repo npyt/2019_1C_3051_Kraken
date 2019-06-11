@@ -37,6 +37,8 @@ namespace TGC.Group.StateMachine
 
         TgcMesh Ship;
         private Microsoft.DirectX.Direct3D.Effect shipEffect;
+        TgcMesh mSky;
+        private Microsoft.DirectX.Direct3D.Effect skyEffect;
         TgcThirdPersonCamera myCamera;
         TgcSkyBox skyBox;
 
@@ -81,11 +83,20 @@ namespace TGC.Group.StateMachine
             Ship.Move(0, 0, 0);
             Ship.Scale = new TGCVector3(1f, 1f, -1f);
 
+
             
             shipEffect = TGCShaders.Instance.LoadEffect(parent.ShadersDir + "ShipShader.fx");
             Ship.Effect = shipEffect;
             Ship.Technique = "RenderScene";
-            
+
+            mSky = loader.loadSceneFromFile(parent.MediaDir + "Test\\pSphere4-TgcScene.xml").Meshes[0];
+            mSky.Move(0, 0, 0);
+            mSky.Scale = new TGCVector3(1f, 1f, -1f);
+
+            skyEffect = TGCShaders.Instance.LoadEffect(parent.ShadersDir + "SkyShader.fx");
+            mSky.Effect = skyEffect;
+            mSky.Technique = "RenderScene";
+
 
             /*
             var d3dDevice = D3DDevice.Instance.Device;
@@ -121,7 +132,8 @@ namespace TGC.Group.StateMachine
             parent.drawer2D.DrawSprite(logoSprite);
             parent.drawer2D.EndDrawSprite();
 
-            skyBox.Render();
+            //skyBox.Render();
+            mSky.Render();
 
             D3DDevice.Instance.Device.Transform.Projection = TGCMatrix.PerspectiveFovLH(D3DDevice.Instance.FieldOfView, D3DDevice.Instance.AspectRatio,
                     D3DDevice.Instance.ZNearPlaneDistance, D3DDevice.Instance.ZFarPlaneDistance * 2f).ToMatrix();

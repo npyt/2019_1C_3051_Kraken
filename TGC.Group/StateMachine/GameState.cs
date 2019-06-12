@@ -350,6 +350,13 @@ namespace TGC.Group.StateMachine
                 tracks[a].Render();
                 // blooms[a].Render(); OJO, PONGO ESTO PARA PODER HACER EL EFECTO
             }
+
+            asteroids[0].Effect.SetValue("time", gameTime.sum_elapsed);
+            for (int a = 0; a < asteroids.Count; a++)
+            {
+                asteroids[a].Render();
+            }
+
             mTierra.Render();
             mSol.Render();
             mMarte.Render();
@@ -787,6 +794,8 @@ namespace TGC.Group.StateMachine
             power_boxes_states.Add(false);
         }
 
+        List<TgcMesh> asteroids;
+
         public void loadLevel(TgcSceneLoader loader, string name)
         {
             string csv_config = File.ReadAllText(parent.MediaDir + "Tracks\\config.csv", Encoding.UTF8);
@@ -796,9 +805,11 @@ namespace TGC.Group.StateMachine
             q_curves = int.Parse(values_config[1]);
 
             Random r = new Random();
+            var loader2 = new TgcSceneLoader();
 
             // Init de tracks
-            for (int i = 0; i < 20; i++)
+            int q_tracks = 20;
+            for (int i = 0; i < q_tracks; i++)
             {
                 Boolean isCurve = r.Next() % 2 == 0;
                 int number = (isCurve) ? r.Next(q_curves) + 1 : r.Next(q_blocks) + 1;
@@ -829,6 +840,42 @@ namespace TGC.Group.StateMachine
                 }
             }
             System.Diagnostics.Debug.WriteLine("Hits Ready");
+
+
+            loader2 = new TgcSceneLoader();
+            asteroids = new List<TgcMesh>();
+            int mdisplacement = 17;
+
+            Microsoft.DirectX.Direct3D.Effect asteroidEffect = TGCShaders.Instance.LoadEffect(parent.ShadersDir + "AsteroidShader.fx");
+
+            for (int i=0; i< q_tracks; i++)
+            {
+                TgcMesh asteroid = loader.loadSceneFromFile(parent.MediaDir + "Asteroid\\asteroid" + r.Next(2) + ".xml").Meshes[0];
+                float scale = ((float)r.NextDouble()) * 2.6f + 0.75f;
+                asteroid.Scale = new TGCVector3(scale, scale, scale);
+                TGCVector3 uv = shipManager.permanent_pool[r.Next(shipManager.permanent_pool.Count)];
+                switch(r.Next(5))
+                {
+                    case 0:
+                        uv.Add(new TGCVector3(r.Next(mdisplacement) + 30.6f * r.Next(6), r.Next(mdisplacement) + 36.4f * r.Next(6), 0));
+                        break;
+                    case 1:
+                        uv.Add(new TGCVector3(r.Next(mdisplacement) + 34.8f * r.Next(6), -(r.Next(mdisplacement) + 36.4f * r.Next(6)), 0));
+                        break;
+                    case 2:
+                        uv.Add(new TGCVector3(-(r.Next(mdisplacement) + 36.8f * r.Next(6)), r.Next(mdisplacement) + 37.3f * r.Next(6), 0));
+                        break;
+                    case 3:
+                        uv.Add(new TGCVector3(-(r.Next(mdisplacement) + 39.6f * r.Next(6)), -(r.Next(mdisplacement) + 37.4f * r.Next(6)), 0));
+                        break;
+                }
+                asteroid.Position = uv;
+                asteroids.Add(asteroid);
+
+                asteroid.Effect = asteroidEffect;
+                asteroid.Technique = "RenderScene";
+            }
+            // Nave
 
             // Musica
             mp3Path = parent.MediaDir + "Levels\\" + name + "\\music.wav";

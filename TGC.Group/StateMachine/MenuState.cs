@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using TGC.Core.Direct3D;
+using TGC.Core.Geometry;
 using TGC.Core.Mathematica;
 using TGC.Core.SceneLoader;
 using TGC.Core.Shaders;
@@ -29,18 +30,21 @@ namespace TGC.Group.StateMachine
         List<string> folders = new List<string>();
         List<string> names = new List<string>();
         int selectedLevel = 0;
+        static int scale = 10000;
+        TGCVector3 sphereScale = new TGCVector3(scale, scale, scale);
 
         private CustomSprite logoSprite;
         private CustomSprite bgSprite;
 
         Font fontMenu;
 
+        TGCSphere skyBox;
+
         TgcMesh Ship;
         private Microsoft.DirectX.Direct3D.Effect shipEffect;
         TgcMesh mSky;
         private Microsoft.DirectX.Direct3D.Effect skyEffect;
         TgcThirdPersonCamera myCamera;
-        TgcSkyBox skyBox;
 
         private TgcMp3Player mp3Player;
         String mp3Path;
@@ -94,8 +98,7 @@ namespace TGC.Group.StateMachine
             mSky.Scale = new TGCVector3(1f, 1f, -1f);
 
             skyEffect = TGCShaders.Instance.LoadEffect(parent.ShadersDir + "SkyShader.fx");
-            mSky.Effect = skyEffect;
-            mSky.Technique = "RenderScene";
+
 
 
             /*
@@ -105,19 +108,19 @@ namespace TGC.Group.StateMachine
                 Microsoft.DirectX.Direct3D.Format.X8R8G8B8, Microsoft.DirectX.Direct3D.Pool.Default);
                 */
             //shipEffect.SetValue("diffuseMap", diffuse);
+            var texture = TgcTexture.createTexture(parent.MediaDir + "SkyBox\\universe2.png");
 
-            skyBox = new TgcSkyBox();
-            skyBox.Center = TGCVector3.Empty;
-            skyBox.Size = new TGCVector3(20000, 20000, 20000);
-            skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Up, parent.MediaDir + "\\dims.jpg");
-            skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Down, parent.MediaDir + "\\dims.jpg");
-            skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Left, parent.MediaDir + "\\dims.jpg");
-            skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Right, parent.MediaDir + "\\dims.jpg");
-            skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Front, parent.MediaDir + "\\dims.jpg");
-            skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Back, parent.MediaDir + "\\dims.jpg");
-            skyBox.SkyEpsilon = 25f;
-            skyBox.Init();
-            
+
+            skyBox = new TGCSphere();
+            skyBox.Position = new TGCVector3(0, 0, 0);
+            skyBox.Color = Color.White;
+            skyBox.setTexture(texture);
+            skyBox.LevelOfDetail = 2;
+            skyBox.updateValues();
+            skyBox.RotateY(FastMath.PI/2);
+
+            //skyBox.Effect = skyEffect;
+            //skyBox.Technique = "RenderScene";
 
             myCamera = new TgcThirdPersonCamera(Ship.Position, 60, -135);
             parent.Camara = myCamera;
@@ -131,9 +134,8 @@ namespace TGC.Group.StateMachine
             parent.drawer2D.BeginDrawSprite();
             parent.drawer2D.DrawSprite(logoSprite);
             parent.drawer2D.EndDrawSprite();
-
-            //skyBox.Render();
-            mSky.Render();
+            
+            skyBox.Render();
 
             D3DDevice.Instance.Device.Transform.Projection = TGCMatrix.PerspectiveFovLH(D3DDevice.Instance.FieldOfView, D3DDevice.Instance.AspectRatio,
                     D3DDevice.Instance.ZNearPlaneDistance, D3DDevice.Instance.ZFarPlaneDistance * 2f).ToMatrix();
@@ -156,17 +158,14 @@ namespace TGC.Group.StateMachine
             }
             parent.DrawText.changeFont(parent.defaultFont);
 
+            shipEffect.SetValue("camaraX", myCamera.Target.X - myCamera.Position.X);
+            shipEffect.SetValue("camaraY", myCamera.Target.Y - myCamera.Position.Y);
+            shipEffect.SetValue("camaraZ", myCamera.Target.Z - myCamera.Position.Z);
             Ship.Render();
         }
 
         public override void update(float ElapsedTime)
         {
-            shipEffect.SetValue("camaraX", myCamera.Target.X - myCamera.Position.X);
-
-            shipEffect.SetValue("camaraY", myCamera.Target.Y - myCamera.Position.Y);
-
-            shipEffect.SetValue("camaraZ", myCamera.Target.Z - myCamera.Position.Z);
-
             gameTime.update(ElapsedTime);
 
             if(mp3Player == null)
@@ -188,7 +187,7 @@ namespace TGC.Group.StateMachine
                 if (selectedLevel == -1)
                     selectedLevel++;
             }
-            if (parent.Input.keyPressed(Key.RightControl))
+            if (parent.Input.keyPressed(Key.Return))
             {
                 mp3Player.stop();
                 mp3Player.closeFile();
@@ -199,7 +198,12 @@ namespace TGC.Group.StateMachine
             Ship.Move(new TGCVector3(0, TGC.Core.Mathematica.FastMath.Sin(gameTime.sum_elapsed * 1.5f) * 0.3f, 0));
             Ship.RotateY(gameTime.counter_elapsed * 0.000003f);
 
+            skyBox.RotateY(-gameTime.counter_elapsed * 0.0000003f);
+            skyBox.RotateZ(-gameTime.counter_elapsed * 0.00000003f / 0.3f);
+
+            skyBox.Transform = TGCMatrix.Scaling(sphereScale) * TGCMatrix.RotationYawPitchRoll(skyBox.Rotation.Y, skyBox.Rotation.X, skyBox.Rotation.Z) * TGCMatrix.Translation(skyBox.Position);
             Ship.Transform = TGCMatrix.Scaling(Ship.Scale) * TGCMatrix.RotationYawPitchRoll(Ship.Rotation.Y, Ship.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(Ship.Position);
+
         }
 
         private void loadLevelList()

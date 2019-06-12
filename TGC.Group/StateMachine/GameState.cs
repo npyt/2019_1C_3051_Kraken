@@ -55,7 +55,7 @@ namespace TGC.Group.StateMachine
         private TGCBox superPowerBox { get; set; }
         private bool superPowerStatus;
         private float superPowerTime;
-        private const float SUPERPOWER_MOVEMENT_SPEED = 152f;
+        private const float SUPERPOWER_MOVEMENT_SPEED =152f;
         VertexMovementManager powerManager;
 
         // Lista de tracks
@@ -75,7 +75,9 @@ namespace TGC.Group.StateMachine
         // Mesh: marte
         private TgcMesh mMarte { get; set; }
         // Mesh: skydome
-        private TgcMesh mSky { get; set; }
+        private TGCSphere skyBox { get; set; }
+        static int scale = 10000;
+        TGCVector3 sphereScale = new TGCVector3(scale, scale, scale);
 
         // Camara principal (tercera persona)
         private TgcThirdPersonCamera camaraInterna;
@@ -88,7 +90,7 @@ namespace TGC.Group.StateMachine
         String mp3Path;
 
         // Movimiento y rotacion
-        private const float MOVEMENT_SPEED = 52f;
+        private const float MOVEMENT_SPEED = 95f;
         private const float VERTEX_MIN_DISTANCE = 0.3f;
 
         private TGCBox test_hit { get; set; }
@@ -109,9 +111,6 @@ namespace TGC.Group.StateMachine
 
         // Boundingbox status
         private bool BoundingBox { get; set; }
-
-        // SkyBox
-        private TgcSkyBox skyBox;
 
         // Player creation
         Stat stat = new Stat("PLAYER");
@@ -246,14 +245,6 @@ namespace TGC.Group.StateMachine
 
             skyEffect = TGCShaders.Instance.LoadEffect(parent.ShadersDir + "SkyShader.fx");
 
-
-            mSky = loader.loadSceneFromFile(parent.MediaDir + "Test\\pSphere4-TgcScene.xml").Meshes[0];
-            mSky.Move(0, 0, 0);
-            mSky.Scale = new TGCVector3(2,2,2);
-
-            mSky.Effect = skyEffect;
-            mSky.Technique = "RenderScene";
-
             // Sol
             mSol = loader.loadSceneFromFile(parent.MediaDir + "Test\\pSphere3-TgcScene.xml").Meshes[0];
             mSol.Move(0, 0, 0);
@@ -294,19 +285,20 @@ namespace TGC.Group.StateMachine
             superPowerStatus = false;
             superPowerTime = 0;
 
-            // SkyBox
-            skyBox = new TgcSkyBox();
-            skyBox.Center = TGCVector3.Empty;
-            skyBox.Size = new TGCVector3(20000, 20000, 20000);
-            //skyBox.Color = Color.Black; // Test de skyblock con color fijo
-            skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Up, parent.MediaDir + "SkyBox\\purplenebula_up.jpg");
-            skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Down, parent.MediaDir + "SkyBox\\purplenebula_dn.jpg");
-            skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Left, parent.MediaDir + "SkyBox\\purplenebula_lf.jpg");
-            skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Right, parent.MediaDir + "SkyBox\\purplenebula_rt.jpg");
-            skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Front, parent.MediaDir + "SkyBox\\purplenebula_bk.jpg");
-            skyBox.setFaceTexture(TgcSkyBox.SkyFaces.Back, parent.MediaDir + "SkyBox\\purplenebula_ft.jpg");
-            skyBox.SkyEpsilon = 25f;
-            skyBox.Init();
+            //Skybox
+            var textureSky = TgcTexture.createTexture(parent.MediaDir + "SkyBox\\universe2.png");
+
+            skyBox = new TGCSphere();
+            skyBox.Position = new TGCVector3(0, 0, 0);
+            skyBox.Color = Color.White;
+            skyBox.setTexture(textureSky);
+            skyBox.LevelOfDetail = 2;
+            skyBox.updateValues();
+            skyBox.RotateY(FastMath.PI / 2);
+
+
+            skyBox.Effect = skyEffect;
+            skyBox.Technique = "RenderScene";
 
             animation = TGCMatrix.Identity;
 
@@ -347,7 +339,11 @@ namespace TGC.Group.StateMachine
             stringFormat.LineAlignment = StringAlignment.Center;  // Vertical Alignment
 
             // Renders
-            //skyBox.Render();
+            skyBox.Render();
+
+            shipEffect.SetValue("camaraX", 0);
+            shipEffect.SetValue("camaraY", 0);
+            shipEffect.SetValue("camaraZ", 1);
             Ship.Render();
             for (int a = 0; a < tracks.Count; a++)
             {
@@ -357,10 +353,7 @@ namespace TGC.Group.StateMachine
             mTierra.Render();
             mSol.Render();
             mMarte.Render();
-            mSky.Render();
-
-            ShipCollision.BoundingBox.Render();
-
+           
             totalPoints.render();
             multiplyPointsGUI.render();
             if (helpGUI)
@@ -399,12 +392,6 @@ namespace TGC.Group.StateMachine
 
         public override void update(float ElapsedTime)
         {
-            shipEffect.SetValue("camaraX", camaraInterna.Target.X - camaraInterna.Position.X);
-
-            shipEffect.SetValue("camaraY", camaraInterna.Target.Y - camaraInterna.Position.Y);
-
-            shipEffect.SetValue("camaraZ", camaraInterna.Target.Z - camaraInterna.Position.Z);
-
             totalTime.update(ElapsedTime);
 
             /*powerBoxElaped += ElapsedTime;
@@ -688,7 +675,8 @@ namespace TGC.Group.StateMachine
                 ShipCollision.Transform = TGCMatrix.Scaling(Ship.Scale) * TGCMatrix.RotationYawPitchRoll(Ship.Rotation.Y, Ship.Rotation.X, Ship.Rotation.Z) * TGCMatrix.Translation(Ship.Position);
                 godBox.Transform = TGCMatrix.Scaling(godBox.Scale) * TGCMatrix.RotationYawPitchRoll(godBox.Rotation.Y, godBox.Rotation.X, godBox.Rotation.Z) * TGCMatrix.Translation(godBox.Position);
                 superPowerBox.Transform = TGCMatrix.Scaling(superPowerBox.Scale) * TGCMatrix.RotationYawPitchRoll(superPowerBox.Rotation.Y, superPowerBox.Rotation.X, superPowerBox.Rotation.Z) * TGCMatrix.Translation(superPowerBox.Position);
-
+                skyBox.Transform = TGCMatrix.Scaling(sphereScale) * TGCMatrix.RotationYawPitchRoll(skyBox.Rotation.Y, skyBox.Rotation.X, skyBox.Rotation.Z) * TGCMatrix.Translation(skyBox.Position);
+            
                 for (int a = 0; a < power_boxes.Count; a++)
                 {
                     TGCBox ShortPowerBox = power_boxes[a];

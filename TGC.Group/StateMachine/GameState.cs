@@ -90,7 +90,7 @@ namespace TGC.Group.StateMachine
         String mp3Path;
 
         // Movimiento y rotacion
-        private const float MOVEMENT_SPEED = 95f;
+        private const float MOVEMENT_SPEED = 45f;
         private const float VERTEX_MIN_DISTANCE = 0.3f;
 
         private TGCBox test_hit { get; set; }
@@ -811,7 +811,7 @@ namespace TGC.Group.StateMachine
             int q_tracks = 20;
             for (int i = 0; i < q_tracks; i++)
             {
-                Boolean isCurve = r.Next() % 2 == 0;
+                Boolean isCurve = r.Next() % 100 < 25;
                 int number = (isCurve) ? r.Next(q_curves) + 1 : r.Next(q_blocks) + 1;
                 string file_name = number + "_";
                 string folder = (isCurve) ? "Tracks\\Curves\\" : "Tracks\\Blocks\\";

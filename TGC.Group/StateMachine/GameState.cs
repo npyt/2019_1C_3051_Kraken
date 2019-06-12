@@ -52,7 +52,7 @@ namespace TGC.Group.StateMachine
         private TGCBox godBox { get; set; }
 
         // SuperPowerBox
-        private TGCBox superPowerBox { get; set; }
+        private TgcMesh superPowerBox { get; set; }
         private bool superPowerStatus;
         private float superPowerTime;
         private const float SUPERPOWER_MOVEMENT_SPEED =152f;
@@ -276,12 +276,11 @@ namespace TGC.Group.StateMachine
             loadLevel(loader, levelFolder);
 
             // SuperPower
-            var sizeSuperPower = new TGCVector3(225, 1, 1);
-            superPowerBox = TGCBox.fromSize(sizeSuperPower, texture);
-            superPowerBox.Color = Color.MediumPurple;
-            superPowerBox.updateValues();
-            superPowerBox.Position = new TGCVector3(0, 0, -50);
+            superPowerBox = loader.loadSceneFromFile(parent.MediaDir + "power_sphere.xml").Meshes[0];
+            superPowerBox.Position = new TGCVector3(0, 0, 0);
             superPowerBox.Transform = TGCMatrix.Identity;
+            superPowerBox.Effect = TGCShaders.Instance.LoadEffect(parent.ShadersDir + "PowerShader.fx"); ;
+            superPowerBox.Technique = "RenderScene";
             superPowerStatus = false;
             superPowerTime = 0;
 
@@ -387,6 +386,7 @@ namespace TGC.Group.StateMachine
                 }
                 godBox.BoundingBox.Render();
             }
+            superPowerBox.Effect.SetValue("time", gameTime.sum_elapsed);
             if (superPowerStatus)
             {
                 superPowerBox.Render();

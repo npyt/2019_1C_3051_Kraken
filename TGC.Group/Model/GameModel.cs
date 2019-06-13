@@ -77,12 +77,12 @@ namespace TGC.Group.Model
         public override void Render()
         {
             //Inicio el render de la escena, para ejemplos simples. Cuando tenemos postprocesado o shaders es mejor realizar las operaciones según nuestra conveniencia.
-            PreRender();
+            //PreRender();
 
             if (currentState != null)
                 currentState.render(ElapsedTime);
 
-            PostRender();
+            //PostRender();
         }
 
         public void selectLevel(string folder)

@@ -25,6 +25,7 @@ using TGC.Core.Camara;
 using TGC.Group.Model;
 using TGC.Core.Shaders;
 using Font = System.Drawing.Font;
+using Microsoft.DirectX.Direct3D;
 
 namespace TGC.Group.StateMachine
 {
@@ -38,6 +39,7 @@ namespace TGC.Group.StateMachine
         private Microsoft.DirectX.Direct3D.Effect planetEffect;
         private Microsoft.DirectX.Direct3D.Effect skyEffect;
         private Microsoft.DirectX.Direct3D.Effect trackEffect;
+        private Microsoft.DirectX.Direct3D.Effect bloomEffect;
 
         bool gameRunning = false;
         TimeManager gameTime = new TimeManager();
@@ -130,6 +132,12 @@ namespace TGC.Group.StateMachine
         private TGCMatrix traslation;
 
         private string levelFolder;
+        
+        // Bloom
+        private Texture g_pRenderTarget;
+        private Surface g_pDepthStencil;
+        private VertexBuffer g_pVBV3D;
+        private bool activate_bloom = false;
 
         public GameState(GameModel mparent, string folder) : base(mparent)
         {
@@ -303,99 +311,53 @@ namespace TGC.Group.StateMachine
 
             directionXZ = TGCVector3.Empty;
             directionYZ = TGCVector3.Empty;
+
+
+
+            // BLOOM
+
+            string compilationErrors;
+            bloomEffect = Microsoft.DirectX.Direct3D.Effect.FromFile(d3dDevice, parent.ShadersDir + "BloomShader.fx", null, null, ShaderFlags.PreferFlowControl,
+                null, out compilationErrors);
+            if (bloomEffect == null)
+            {
+                throw new System.Exception("Error al cargar shader. Errores: " + compilationErrors);
+            }
+            bloomEffect.Technique = "DefaultTechnique";
+
+
+            g_pDepthStencil = d3dDevice.CreateDepthStencilSurface(d3dDevice.PresentationParameters.BackBufferWidth,
+                d3dDevice.PresentationParameters.BackBufferHeight,
+                DepthFormat.D24S8, MultiSampleType.None, 0, true);
+            
+            g_pRenderTarget = new Texture(d3dDevice, d3dDevice.PresentationParameters.BackBufferWidth
+                , d3dDevice.PresentationParameters.BackBufferHeight, 1, Usage.RenderTarget, Format.X8R8G8B8,
+                Pool.Default);
+
+            bloomEffect.SetValue("g_RenderTarget", g_pRenderTarget);
+
+            bloomEffect.SetValue("screen_dx", d3dDevice.PresentationParameters.BackBufferWidth);
+            bloomEffect.SetValue("screen_dy", d3dDevice.PresentationParameters.BackBufferHeight);
+
+            CustomVertex.PositionTextured[] vertices =
+            {
+                new CustomVertex.PositionTextured(-1, 1, 1, 0, 0),
+                new CustomVertex.PositionTextured(1, 1, 1, 1, 0),
+                new CustomVertex.PositionTextured(-1, -1, 1, 0, 1),
+                new CustomVertex.PositionTextured(1, -1, 1, 1, 1)
+            };
+
+            g_pVBV3D = new VertexBuffer(typeof(CustomVertex.PositionTextured),
+                4, d3dDevice, Usage.Dynamic | Usage.WriteOnly,
+                CustomVertex.PositionTextured.Format, Pool.Default);
+            g_pVBV3D.SetData(vertices, 0, LockFlags.None);
+
+            
         }
 
         string csv_out = "";
 
-        public override void render(float ElapsedTime)
-        {
-            //Iniciar dibujado de todos los Sprites de la escena (en este caso es solo uno)
-            parent.drawer2D.BeginDrawSprite();
-
-            //Dibujar sprite (si hubiese mas, deberian ir todos aquí)
-            parent.drawer2D.DrawSprite(superPowerSprite);
-            parent.drawer2D.DrawSprite(songProgressBarSprite);
-
-            //Finalizar el dibujado de Sprites
-            parent.drawer2D.EndDrawSprite();
-
-            // Especificaciones en pantalla: posición de la nave y de la cámara
-            if (developerModeGUI)
-            {
-                parent.DrawText.drawText("Ship Position: \n" + Ship.Position, 5, 20, Color.Yellow);
-                parent.DrawText.drawText("Medium Elapsed: \n" + gameTime.medium_elapsed, 145, 20, Color.Yellow);
-                parent.DrawText.drawText("Camera Position: \n" + parent.Camara.Position, 5, 100, Color.Yellow);
-                parent.DrawText.drawText("Elapsed: \n" + ElapsedTime, 145, 60, Color.Yellow);
-                parent.DrawText.drawText("PUNTAJE ACTUAL: " + stat.totalPoints +
-                "\nMULTIPLICADOR ACTUAL: " + stat.totalMultiply +
-                "\nMULTIPLICADOR PARCIAL: " + stat.partialMultiply +
-                "\nSUPERPODER: " + ((!superPowerStatus) ? "TRUÉ" : "FALSE" + ElapsedTime), 5, 180, Color.Yellow);
-            }
-            parent.DrawText.drawText("SumElapsed: \n" + gameTime.sum_elapsed, 145, 100, Color.White);
-
-            StringFormat stringFormat = new StringFormat();
-            stringFormat.Alignment = StringAlignment.Center;      // Horizontal Alignment
-            stringFormat.LineAlignment = StringAlignment.Center;  // Vertical Alignment
-
-            // Renders
-            skyBox.Render();
-
-            shipEffect.SetValue("camaraX", 0);
-            shipEffect.SetValue("camaraY", 0);
-            shipEffect.SetValue("camaraZ", 1);
-            Ship.Render();
-            for (int a = 0; a < tracks.Count; a++)
-            {
-                tracks[a].Render();
-                // blooms[a].Render(); OJO, PONGO ESTO PARA PODER HACER EL EFECTO
-            }
-
-            asteroids[0].Effect.SetValue("time", gameTime.sum_elapsed);
-            for (int a = 0; a < asteroids.Count; a++)
-            {
-                asteroids[a].Render();
-            }
-
-            mTierra.Render();
-            mSol.Render();
-            mMarte.Render();
-           
-            totalPoints.render();
-            multiplyPointsGUI.render();
-            if (helpGUI)
-            {
-                tButtons.render();
-            }
-            if (penalty)
-            {
-                subPoints.render();
-            }
-            for (int a = 0; a < power_boxes.Count; a++)
-            {
-                TGCBox ShortPowerBox = power_boxes[a];
-                ShortPowerBox.Render();
-            }
-            if (BoundingBox)
-            {
-                Ship.BoundingBox.Render();
-
-                for (int a = 0; a < power_boxes.Count; a++)
-                {
-                    TGCBox ShortPowerBox = power_boxes[a];
-                    ShortPowerBox.BoundingBox.Render();
-                }
-                godBox.BoundingBox.Render();
-            }
-            superPowerBox.Effect.SetValue("time", gameTime.sum_elapsed);
-            if (superPowerStatus)
-            {
-                superPowerBox.Render();
-            }
-
-            //drawer2D.BeginDrawSprite();
-            //drawer2D.DrawSprite(sprite);
-            //drawer2D.EndDrawSprite();
-        }
+        
 
         public override void update(float ElapsedTime)
         {
@@ -412,137 +374,142 @@ namespace TGC.Group.StateMachine
                 powerBoxElaped = 0f;
             }*/
 
-                gameTime.update(ElapsedTime);
+            gameTime.update(ElapsedTime);
 
-                // Apretar M para activar musica
-                if(mp3Player.getStatus() == TgcMp3Player.States.Stopped)
+            // Apretar M para activar musica
+            if(mp3Player.getStatus() == TgcMp3Player.States.Stopped)
+            {
+                mp3Player.closeFile();
+                parent.returnToMenu();
+            }
+
+            if (parent.Input.keyPressed(Key.S))
+            {
+                System.IO.File.WriteAllText(parent.MediaDir + "\\hits_output.csv", csv_out);
+            }
+
+            if (parent.Input.keyPressed(Key.U))
+            {
+                csv_out += ((int)(gameTime.sum_elapsed * 1000)) + ";";
+            }
+
+            float rotate = 0;
+
+            // Para que no surja el artifact del skybox
+            D3DDevice.Instance.Device.Transform.Projection = TGCMatrix.PerspectiveFovLH(D3DDevice.Instance.FieldOfView, D3DDevice.Instance.AspectRatio,
+                    D3DDevice.Instance.ZNearPlaneDistance, D3DDevice.Instance.ZFarPlaneDistance * 2f).ToMatrix();
+
+            // Deteccion entre poderes y ship al apretar ESPACIO
+            if (parent.Input.keyPressed(Key.Space))
+            {
+                int noTouching = 0;
+                for (int a = 0; a < power_boxes.Count; a++)
                 {
-                    mp3Player.closeFile();
-                    parent.returnToMenu();
-                }
-
-                if (parent.Input.keyPressed(Key.S))
-                {
-                    System.IO.File.WriteAllText(parent.MediaDir + "\\hits_output.csv", csv_out);
-                }
-
-                if (parent.Input.keyPressed(Key.U))
-                {
-                    csv_out += ((int)(gameTime.sum_elapsed * 1000)) + ";";
-                }
-
-                float rotate = 0;
-
-                // Para que no surja el artifact del skybox
-                D3DDevice.Instance.Device.Transform.Projection = TGCMatrix.PerspectiveFovLH(D3DDevice.Instance.FieldOfView, D3DDevice.Instance.AspectRatio,
-                        D3DDevice.Instance.ZNearPlaneDistance, D3DDevice.Instance.ZFarPlaneDistance * 2f).ToMatrix();
-
-                // Deteccion entre poderes y ship al apretar ESPACIO
-                if (parent.Input.keyPressed(Key.Space))
-                {
-                    int noTouching = 0;
-                    for (int a = 0; a < power_boxes.Count; a++)
+                    TGCBox ShortPowerBox = power_boxes[a];
+                    if (TgcCollisionUtils.testAABBAABB(ShipCollision.BoundingBox, power_boxes[a].BoundingBox))
                     {
-                        TGCBox ShortPowerBox = power_boxes[a];
-                        if (TgcCollisionUtils.testAABBAABB(ShipCollision.BoundingBox, power_boxes[a].BoundingBox))
+                        //power_boxes[a].Color = Color.Yellow;
+                        //power_boxes[a].updateValues();
+                        power_boxes[a].Color = Color.Red;
+                        power_boxes[a].updateValues();
+                        if (!power_boxes_states[a])
                         {
-                            //power_boxes[a].Color = Color.Yellow;
-                            //power_boxes[a].updateValues();
-                            power_boxes[a].Color = Color.Red;
-                            power_boxes[a].updateValues();
-                            if (!power_boxes_states[a])
-                            {
-                                power_boxes_states[a] = true;
-                                stat.addMultiply();
-                                stat.addPoints(10);
+                            power_boxes_states[a] = true;
+                            stat.addMultiply();
+                            stat.addPoints(10);
 
-                                totalPointsGUItime = gameTime.sum_elapsed;
-                                multiplyPointsGUItime = gameTime.sum_elapsed;
-                            }
+                            totalPointsGUItime = gameTime.sum_elapsed;
+                            multiplyPointsGUItime = gameTime.sum_elapsed;
                         }
-                        else
-                        {
-                            noTouching++;
-                            power_boxes[a].updateValues();
-                        }
-                    }
-                    if (noTouching == power_boxes.Count)
-                    {
-
-                        stat.cancelMultiply();
-                        if (stat.totalPoints != 0)
-                        {
-                            subPoints.Text = "-10";
-                            penalty = true;
-                        }
-                        else if (stat.totalPoints == 0)
-                        {
-                            penalty = true;
-                            subPoints.Text = "X";
-                        }
-
-                        stat.addPoints(-10);
-
-                        totalPointsGUItime = gameTime.sum_elapsed;
-                        penaltyTime = gameTime.sum_elapsed;
-                        multiplyPointsGUItime = gameTime.sum_elapsed;
-                    }
-                }
-
-                if(parent.Input.keyPressed(Key.B))
-                {
-                    for (int a = 0; a < tracks.Count; a++)
-                    {
-                        if (tracks_is_curve[a])
-                        {
-                            if(TgcCollisionUtils.testAABBAABB(ShipCollision.BoundingBox, tracks[a].BoundingBox))
-                            {
-                                curve_hitted();
-                                tracks_is_curve[a] = false;
-                            }
-                        }
-                    }
-                }
-
-                if (penalty)
-                {
-                    if (gameTime.sum_elapsed - penaltyTime > 0.5f)
-                    {
-                        penalty = false;
-                    }
-                }
-
-                // Activar bounding box al presionar F
-                if (parent.Input.keyPressed(Key.F))
-                {
-                    BoundingBox = !BoundingBox;
-                }
-
-                // Cambiar cámara al presionar TAB
-                if (parent.Input.keyPressed(Key.Tab))
-                {
-                    if (parent.Camara.Equals(camaraInterna))
-                    {
-                        parent.Camara = godCamera;
                     }
                     else
                     {
-                        parent.Camara = camaraInterna;
-                    };
+                        noTouching++;
+                        power_boxes[a].updateValues();
+                    }
                 }
-
-                if (parent.Input.keyPressed(Key.H))
+                if (noTouching == power_boxes.Count)
                 {
-                    helpGUI = !helpGUI;
-                }
 
-                if (parent.Input.keyPressed(Key.K))
+                    stat.cancelMultiply();
+                    if (stat.totalPoints != 0)
+                    {
+                        subPoints.Text = "-10";
+                        penalty = true;
+                    }
+                    else if (stat.totalPoints == 0)
+                    {
+                        penalty = true;
+                        subPoints.Text = "X";
+                    }
+
+                    stat.addPoints(-10);
+
+                    totalPointsGUItime = gameTime.sum_elapsed;
+                    penaltyTime = gameTime.sum_elapsed;
+                    multiplyPointsGUItime = gameTime.sum_elapsed;
+                }
+            }
+
+            if(parent.Input.keyPressed(Key.B))
+            {
+                for (int a = 0; a < tracks.Count; a++)
                 {
-                    developerModeGUI = !developerModeGUI;
+                    if (tracks_is_curve[a])
+                    {
+                        if(TgcCollisionUtils.testAABBAABB(ShipCollision.BoundingBox, tracks[a].BoundingBox))
+                        {
+                            curve_hitted();
+                            tracks_is_curve[a] = false;
+                        }
+                    }
                 }
+            }
 
-                // SuperPower al presionar SHIFT IZQUIERDO cada 2 segundos
-                if (parent.Input.keyPressed(Key.LeftShift))
+            if (penalty)
+            {
+                if (gameTime.sum_elapsed - penaltyTime > 0.5f)
+                {
+                    penalty = false;
+                }
+            }
+
+            // Activar bounding box al presionar F
+            if (parent.Input.keyPressed(Key.F))
+            {
+                BoundingBox = !BoundingBox;
+            }
+
+            // Cambiar cámara al presionar TAB
+            if (parent.Input.keyPressed(Key.Tab))
+            {
+                if (parent.Camara.Equals(camaraInterna))
+                {
+                    parent.Camara = godCamera;
+                }
+                else
+                {
+                    parent.Camara = camaraInterna;
+                };
+            }
+
+            if (parent.Input.keyPressed(Key.H))
+            {
+                helpGUI = !helpGUI;
+            }
+
+            if (parent.Input.keyPressed(Key.K))
+            {
+                developerModeGUI = !developerModeGUI;
+            }
+
+            if (parent.Input.keyPressed(Key.B))
+            {
+                activate_bloom = !activate_bloom;
+            }
+
+            // SuperPower al presionar SHIFT IZQUIERDO cada 2 segundos
+            if (parent.Input.keyPressed(Key.LeftShift))
                 {
                     if (gameTime.sum_elapsed - superPowerTime > 3.0f || superPowerTime == 0)
                     {
@@ -696,6 +663,140 @@ namespace TGC.Group.StateMachine
                 godCamera.Target = godBox.Position;
 
         }
+        public override void render(float ElapsedTime)
+        {
+            
+            var device = D3DDevice.Instance.Device;
+            
+            bloomEffect.Technique = "DefaultTechnique";
+            var pOldRT = device.GetRenderTarget(0);
+            var pSurf = g_pRenderTarget.GetSurfaceLevel(0);
+            if (activate_bloom)
+                device.SetRenderTarget(0, pSurf);
+            var pOldDS = device.DepthStencilSurface;
+            if (activate_bloom)
+                device.DepthStencilSurface = g_pDepthStencil;
+
+            device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Color.Black, 1.0f, 0);
+
+            device.BeginScene();
+            
+
+            //Iniciar dibujado de todos los Sprites de la escena (en este caso es solo uno)
+            parent.drawer2D.BeginDrawSprite();
+
+            //Dibujar sprite (si hubiese mas, deberian ir todos aquí)
+            parent.drawer2D.DrawSprite(superPowerSprite);
+            parent.drawer2D.DrawSprite(songProgressBarSprite);
+
+            //Finalizar el dibujado de Sprites
+            parent.drawer2D.EndDrawSprite();
+
+            // Especificaciones en pantalla: posición de la nave y de la cámara
+            if (developerModeGUI)
+            {
+                parent.DrawText.drawText("Ship Position: \n" + Ship.Position, 5, 20, Color.Yellow);
+                parent.DrawText.drawText("Medium Elapsed: \n" + gameTime.medium_elapsed, 145, 20, Color.Yellow);
+                parent.DrawText.drawText("Camera Position: \n" + parent.Camara.Position, 5, 100, Color.Yellow);
+                parent.DrawText.drawText("Elapsed: \n" + ElapsedTime, 145, 60, Color.Yellow);
+                parent.DrawText.drawText("PUNTAJE ACTUAL: " + stat.totalPoints +
+                "\nMULTIPLICADOR ACTUAL: " + stat.totalMultiply +
+                "\nMULTIPLICADOR PARCIAL: " + stat.partialMultiply +
+                "\nSUPERPODER: " + ((!superPowerStatus) ? "TRUÉ" : "FALSE" + ElapsedTime), 5, 180, Color.Yellow);
+                parent.DrawText.drawText("SumElapsed: \n" + gameTime.sum_elapsed, 145, 100, Color.White);
+            }
+
+            StringFormat stringFormat = new StringFormat();
+            stringFormat.Alignment = StringAlignment.Center;      // Horizontal Alignment
+            stringFormat.LineAlignment = StringAlignment.Center;  // Vertical Alignment
+
+            // Renders
+            skyBox.Render();
+
+            shipEffect.SetValue("camaraX", 0);
+            shipEffect.SetValue("camaraY", 0);
+            shipEffect.SetValue("camaraZ", 1);
+            Ship.Render();
+            for (int a = 0; a < tracks.Count; a++)
+            {
+                tracks[a].Render();
+                // blooms[a].Render(); OJO, PONGO ESTO PARA PODER HACER EL EFECTO
+            }
+
+            asteroids[0].Effect.SetValue("time", gameTime.sum_elapsed);
+            for (int a = 0; a < asteroids.Count; a++)
+            {
+                asteroids[a].Render();
+            }
+
+            mTierra.Render();
+            mSol.Render();
+            mMarte.Render();
+
+            totalPoints.render();
+            multiplyPointsGUI.render();
+            if (helpGUI)
+            {
+                tButtons.render();
+            }
+            if (penalty)
+            {
+                subPoints.render();
+            }
+            for (int a = 0; a < power_boxes.Count; a++)
+            {
+                TGCBox ShortPowerBox = power_boxes[a];
+                ShortPowerBox.Render();
+            }
+            if (BoundingBox)
+            {
+                Ship.BoundingBox.Render();
+
+                for (int a = 0; a < power_boxes.Count; a++)
+                {
+                    TGCBox ShortPowerBox = power_boxes[a];
+                    ShortPowerBox.BoundingBox.Render();
+                }
+                godBox.BoundingBox.Render();
+            }
+            superPowerBox.Effect.SetValue("time", gameTime.sum_elapsed);
+            if (superPowerStatus)
+            {
+                superPowerBox.Render();
+            }
+
+            device.EndScene();
+
+            pSurf.Dispose();
+            if (activate_bloom)
+            {
+                device.DepthStencilSurface = pOldDS;
+                device.SetRenderTarget(0, pOldRT);
+
+                device.BeginScene();
+
+                bloomEffect.SetValue("time", gameTime.sum_elapsed);
+                device.VertexFormat = CustomVertex.PositionTextured.Format;
+                device.SetStreamSource(0, g_pVBV3D, 0);
+                bloomEffect.SetValue("g_RenderTarget", g_pRenderTarget);
+
+                device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Color.White, 1.0f, 0);
+                bloomEffect.Begin(FX.None);
+                bloomEffect.BeginPass(0);
+                device.DrawPrimitives(PrimitiveType.TriangleStrip, 0, 2);
+                bloomEffect.EndPass();
+                bloomEffect.End();
+
+                device.EndScene();
+            }
+
+            //drawer2D.BeginDrawSprite();
+            //drawer2D.DrawSprite(sprite);
+            //drawer2D.EndDrawSprite();
+
+
+            device.Present();
+        }
 
         private void curve_hitted()
         {
@@ -710,6 +811,10 @@ namespace TGC.Group.StateMachine
             {
                 power_boxes[a].Dispose();
             }*/
+
+            g_pRenderTarget.Dispose();
+            g_pVBV3D.Dispose();
+            g_pDepthStencil.Dispose();
         }
 
         public TGCVector3 getPositionAtMiliseconds(int miliseconds)

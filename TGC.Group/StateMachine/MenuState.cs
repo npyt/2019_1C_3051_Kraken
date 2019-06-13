@@ -1,4 +1,5 @@
-﻿using Microsoft.DirectX.DirectInput;
+﻿using Microsoft.DirectX.Direct3D;
+using Microsoft.DirectX.DirectInput;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -20,6 +21,7 @@ using TGC.Group.Camara;
 using TGC.Group.Core2d;
 using TGC.Group.Model;
 using TGC.Group.VertexMovement;
+using Font = System.Drawing.Font;
 
 namespace TGC.Group.StateMachine
 {
@@ -131,6 +133,9 @@ namespace TGC.Group.StateMachine
 
         public override void render(float ElapsedTime)
         {
+            var device = D3DDevice.Instance.Device;
+            device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Color.Black, 1.0f, 0);
+            device.BeginScene();
             parent.drawer2D.BeginDrawSprite();
             parent.drawer2D.DrawSprite(logoSprite);
             parent.drawer2D.EndDrawSprite();
@@ -162,6 +167,8 @@ namespace TGC.Group.StateMachine
             shipEffect.SetValue("camaraY", myCamera.Target.Y - myCamera.Position.Y);
             shipEffect.SetValue("camaraZ", myCamera.Target.Z - myCamera.Position.Z);
             Ship.Render();
+            device.EndScene();
+            device.Present();
         }
 
         public override void update(float ElapsedTime)

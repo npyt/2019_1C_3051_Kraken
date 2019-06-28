@@ -135,6 +135,8 @@ namespace TGC.Group.StateMachine
         
         // Bloom
         private Texture g_pRenderTarget;
+        private Texture g_pRenderTarget4;
+        private Texture g_pRenderTarget4Aux;
         private Surface g_pDepthStencil;
         private VertexBuffer g_pVBV3D;
         private bool activate_bloom = false;
@@ -317,7 +319,7 @@ namespace TGC.Group.StateMachine
             // BLOOM
 
             string compilationErrors;
-            bloomEffect = Microsoft.DirectX.Direct3D.Effect.FromFile(d3dDevice, parent.ShadersDir + "BloomShader.fx", null, null, ShaderFlags.PreferFlowControl,
+            bloomEffect = Microsoft.DirectX.Direct3D.Effect.FromFile(d3dDevice, parent.ShadersDir + "GaussianBlur.fx", null, null, ShaderFlags.PreferFlowControl,
                 null, out compilationErrors);
             if (bloomEffect == null)
             {
@@ -333,6 +335,15 @@ namespace TGC.Group.StateMachine
             g_pRenderTarget = new Texture(d3dDevice, d3dDevice.PresentationParameters.BackBufferWidth
                 , d3dDevice.PresentationParameters.BackBufferHeight, 1, Usage.RenderTarget, Format.X8R8G8B8,
                 Pool.Default);
+
+            g_pRenderTarget4 = new Texture(d3dDevice, d3dDevice.PresentationParameters.BackBufferWidth / 4
+               , d3dDevice.PresentationParameters.BackBufferHeight / 4, 1, Usage.RenderTarget,
+               Format.X8R8G8B8, Pool.Default);
+
+            g_pRenderTarget4Aux = new Texture(d3dDevice, d3dDevice.PresentationParameters.BackBufferWidth / 4
+                , d3dDevice.PresentationParameters.BackBufferHeight / 4, 1, Usage.RenderTarget,
+                Format.X8R8G8B8, Pool.Default);
+
 
             bloomEffect.SetValue("g_RenderTarget", g_pRenderTarget);
 
@@ -772,22 +783,22 @@ namespace TGC.Group.StateMachine
             {
                 device.DepthStencilSurface = pOldDS;
                 device.SetRenderTarget(0, pOldRT);
-
+                
                 device.BeginScene();
 
-                bloomEffect.SetValue("time", gameTime.sum_elapsed);
+                bloomEffect.Technique = "GaussianBlur";
                 device.VertexFormat = CustomVertex.PositionTextured.Format;
                 device.SetStreamSource(0, g_pVBV3D, 0);
                 bloomEffect.SetValue("g_RenderTarget", g_pRenderTarget);
 
-                device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Color.White, 1.0f, 0);
+                device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Color.Black, 1.0f, 0);
                 bloomEffect.Begin(FX.None);
                 bloomEffect.BeginPass(0);
                 device.DrawPrimitives(PrimitiveType.TriangleStrip, 0, 2);
                 bloomEffect.EndPass();
                 bloomEffect.End();
-
                 device.EndScene();
+
             }
 
             //drawer2D.BeginDrawSprite();

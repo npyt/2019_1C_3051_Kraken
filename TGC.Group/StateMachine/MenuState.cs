@@ -124,7 +124,7 @@ namespace TGC.Group.StateMachine
             //skyBox.Effect = skyEffect;
             //skyBox.Technique = "RenderScene";
 
-            myCamera = new TgcThirdPersonCamera(Ship.Position, 60, -135);
+            myCamera = new TgcThirdPersonCamera(Ship.Position + new TGCVector3(20,0,0), 60, -135);
             parent.Camara = myCamera;
 
 

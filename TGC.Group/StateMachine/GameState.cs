@@ -428,7 +428,7 @@ namespace TGC.Group.StateMachine
                             power_boxes_states[a] = true;
                             stat.addMultiply();
                             stat.addPoints(10);
-
+                            
                             totalPointsGUItime = gameTime.sum_elapsed;
                             multiplyPointsGUItime = gameTime.sum_elapsed;
                         }
@@ -456,6 +456,7 @@ namespace TGC.Group.StateMachine
 
                     stat.addPoints(-10);
 
+                    activate_bloom = true;
                     totalPointsGUItime = gameTime.sum_elapsed;
                     penaltyTime = gameTime.sum_elapsed;
                     multiplyPointsGUItime = gameTime.sum_elapsed;
@@ -482,6 +483,7 @@ namespace TGC.Group.StateMachine
                 if (gameTime.sum_elapsed - penaltyTime > 0.5f)
                 {
                     penalty = false;
+                    activate_bloom = false;
                 }
             }
 

@@ -216,6 +216,7 @@
     <Content Include="Media\Ciudad\Textures\Yellow Painted.jpg" />
     <Content Include="Media\LogoTGC-TgcScene.xml" />
     <Content Include="Shaders\BloomShader.fx" />
+    <Content Include="Shaders\GaussianBlur.fx" />
     <Content Include="Shaders\TrackShader.fx" />
     <Content Include="Shaders\SkyShader.fx" />
     <Content Include="Shaders\PlanetShader.fx" />

@@ -12,6 +12,8 @@ float4x4 matWorldView; //Matriz World * View
 float4x4 matWorldViewProj; //Matriz World * View * Projection
 float4x4 matInverseTransposeWorld; //Matriz Transpose(Invert(World))
 
+float4 ambientColor = float4(1, 0.2, 0.2, 1);
+
 //Textura para DiffuseMap
 texture texDiffuseMap;
 sampler2D diffuseMap = sampler_state
@@ -188,7 +190,7 @@ static const float Kernel[kernel_size] =
 
 void Blur(float2 screen_pos : TEXCOORD0, out float4 Color : COLOR)
 {
-    Color = 0;
+    Color = 0 + ambientColor;
     for (int i = 0; i < kernel_size; ++i)
         for (int j = 0; j < kernel_size; ++j)
             Color += tex2D(RenderTarget, screen_pos + float2((float) (i - kernel_r) / screen_dx, (float) (j - kernel_r) / screen_dy)) * Kernel[i] * Kernel[j];

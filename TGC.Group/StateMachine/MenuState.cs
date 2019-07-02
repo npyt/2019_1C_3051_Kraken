@@ -79,9 +79,8 @@ namespace TGC.Group.StateMachine
             bgSprite.Scaling = new TGCVector2(1, 1);
             bgSprite.Position = new TGCVector2(-30, 0);
 
-            System.Drawing.Text.PrivateFontCollection bignoodle = new System.Drawing.Text.PrivateFontCollection();
-            bignoodle.AddFontFile(parent.MediaDir + "Fonts\\big_noodle_titling.ttf");
-            fontMenu = new Font(bignoodle.Families[0], 30, FontStyle.Regular);
+            fontMenu = new Font("BigNoodleTitling", 30, FontStyle.Regular);
+
             var loader = new TgcSceneLoader();
 
             // Nave

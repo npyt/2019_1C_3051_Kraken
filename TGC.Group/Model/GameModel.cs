@@ -93,6 +93,7 @@ namespace TGC.Group.Model
 
         public void returnToMenu()
         {
+            menuState = new MenuState(this);
             menuState.gameTime.counter_elapsed = 1;
             currentState = menuState;
         }

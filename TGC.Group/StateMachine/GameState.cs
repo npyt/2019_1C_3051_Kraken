@@ -57,7 +57,7 @@ namespace TGC.Group.StateMachine
         private TgcMesh superPowerBox { get; set; }
         private bool superPowerStatus;
         private float superPowerTime;
-        private const float SUPERPOWER_MOVEMENT_SPEED =152f;
+        private const float SUPERPOWER_MOVEMENT_SPEED =202f;
         VertexMovementManager powerManager;
 
         // Lista de tracks
@@ -92,7 +92,7 @@ namespace TGC.Group.StateMachine
         String mp3Path;
 
         // Movimiento y rotacion
-        private const float MOVEMENT_SPEED = 45f;
+        private const float MOVEMENT_SPEED = 105f;
         private const float VERTEX_MIN_DISTANCE = 0.3f;
 
         private TGCBox test_hit { get; set; }
@@ -124,12 +124,7 @@ namespace TGC.Group.StateMachine
         private float multiplyPointsGUItime;
         private bool penalty;
         private float penaltyTime;
-
-        private CustomSprite superPowerSprite;
-        private CustomSprite songProgressBarSprite;
-        private TGCMatrix superPowerSpriteScaling;
-        private TGCMatrix animation;
-        private TGCMatrix traslation;
+        private CustomSprite blacksprite;
 
         private string levelFolder;
         
@@ -140,6 +135,7 @@ namespace TGC.Group.StateMachine
         private Surface g_pDepthStencil;
         private VertexBuffer g_pVBV3D;
         private bool activate_bloom = false;
+        private bool distortion = true;
 
         public GameState(GameModel mparent, string folder) : base(mparent)
         {
@@ -149,24 +145,19 @@ namespace TGC.Group.StateMachine
 
         public override void init()
         {
-            // GUI
-            //Crear Sprite
-
-            superPowerSprite = new CustomSprite();
-            superPowerSprite.Bitmap = new CustomBitmap(parent.MediaDir + "\\GUI\\superPowerBar.png", D3DDevice.Instance.Device);
-            superPowerSprite.Scaling = new TGCVector2(0.5f, 0.5f);
-            var textureSize = superPowerSprite.Bitmap.Size;
-            superPowerSprite.Position = new TGCVector2(50, Screen.PrimaryScreen.Bounds.Bottom - textureSize.Height * 0.7f);
-
-            songProgressBarSprite = new CustomSprite();
-            songProgressBarSprite.Bitmap = new CustomBitmap(parent.MediaDir + "\\GUI\\songProgressBar.png", D3DDevice.Instance.Device);
-            songProgressBarSprite.Scaling = new TGCVector2(0.72f, 0.5f);
-            songProgressBarSprite.Position = new TGCVector2(30, 30);
-
             helpGUI = true;
             developerModeGUI = false;
 
             penalty = false;
+
+            blacksprite = new CustomSprite();
+            blacksprite.Bitmap = new CustomBitmap(parent.MediaDir + "\\GUI\\black.png", D3DDevice.Instance.Device);
+            float sx = Screen.PrimaryScreen.Bounds.Size.Width / 1080;
+            float sy = Screen.PrimaryScreen.Bounds.Size.Width / 1920;
+            blacksprite.Position = new TGCVector2(0, 0);
+            blacksprite.Scaling = new TGCVector2(0.75f, 0.4f);
+
+
 
             tButtons = new TgcText2D();
             tButtons.Align = TgcText2D.TextAlign.RIGHT;
@@ -178,14 +169,14 @@ namespace TGC.Group.StateMachine
             totalPoints = new TgcText2D();
             totalPoints.Align = TgcText2D.TextAlign.LEFT;
             totalPoints.Size = new Size(200, 300);
-            totalPoints.Position = new Point(100, Screen.PrimaryScreen.Bounds.Bottom - totalPoints.Size.Height - 20);
+            totalPoints.Position = new Point(40, Screen.PrimaryScreen.Bounds.Bottom - totalPoints.Size.Height - 20);
             totalPoints.Color = Color.White;
             totalPoints.changeFont(new Font("BigNoodleTitling", 180, FontStyle.Regular));
 
             multiplyPointsGUI = new TgcText2D();
             multiplyPointsGUI.Align = TgcText2D.TextAlign.LEFT;
             multiplyPointsGUI.Size = new Size(150, 150);
-            multiplyPointsGUI.Position = new Point(110, Screen.PrimaryScreen.Bounds.Bottom - multiplyPointsGUI.Size.Height - 220);
+            multiplyPointsGUI.Position = new Point(50, Screen.PrimaryScreen.Bounds.Bottom - multiplyPointsGUI.Size.Height - 220);
             multiplyPointsGUI.Color = Color.White;
             multiplyPointsGUI.changeFont(new Font("BigNoodleTitling", 59, FontStyle.Italic));
 
@@ -291,6 +282,7 @@ namespace TGC.Group.StateMachine
             superPowerBox.Transform = TGCMatrix.Identity;
             superPowerBox.Effect = TGCShaders.Instance.LoadEffect(parent.ShadersDir + "PowerShader.fx"); ;
             superPowerBox.Technique = "RenderScene";
+            superPowerBox.Scale = new TGCVector3(1.2f, 1.2f, 1.2f);
             superPowerStatus = false;
             superPowerTime = 0;
 
@@ -308,8 +300,6 @@ namespace TGC.Group.StateMachine
 
             skyBox.Effect = skyEffect;
             skyBox.Technique = "RenderScene";
-
-            animation = TGCMatrix.Identity;
 
             directionXZ = TGCVector3.Empty;
             directionYZ = TGCVector3.Empty;
@@ -493,6 +483,11 @@ namespace TGC.Group.StateMachine
                 BoundingBox = !BoundingBox;
             }
 
+            if (parent.Input.keyPressed(Key.D))
+            {
+                distortion = !distortion;
+            }
+
             // Cambiar cámara al presionar TAB
             if (parent.Input.keyPressed(Key.Tab))
             {
@@ -547,13 +542,7 @@ namespace TGC.Group.StateMachine
                         superPowerStatus = false;
                     }
                 }
-
-                superPowerSprite.Scaling = new TGCVector2(1f, 0.1f * ElapsedTime);
-                superPowerSprite.TransformationMatrix = TGCMatrix.Identity;
-                superPowerSpriteScaling = TGCMatrix.Scaling(superPowerSprite.Scaling.X, superPowerSprite.Scaling.Y, 1f);
-
-                superPowerSprite.TransformationMatrix = superPowerSpriteScaling * TGCMatrix.RotationZ(superPowerSprite.Rotation) * TGCMatrix.Translation(superPowerSprite.Position.X, superPowerSprite.Position.Y, 0);
-
+                
                 // Movimiento de la godCamera con W A S D ESPACIO C
                 var movementGod = TGCVector3.Empty;
                 float moveForward = 0;
@@ -651,7 +640,7 @@ namespace TGC.Group.StateMachine
                 }
 
                 // Texto informativo de botones
-                tButtons.Text = "CÁMARA: TAB \nMUSICA: M \nNOTAS: ESPACIO \nSUPERPODER: LEFT SHIFT \nDEVMOD: K \nOcultar ayuda con H";
+                tButtons.Text = "CÁMARA: TAB \nMUSICA: M \nNOTAS: ESPACIO \nSUPERPODER: LEFT SHIFT \nDEVMOD: K\nPOSTPROCESADO: B \nOcultar ayuda con H";
 
                 // Texto informativo del player
                 totalPoints.Text = stat.totalPoints.ToString();
@@ -684,41 +673,24 @@ namespace TGC.Group.StateMachine
             bloomEffect.Technique = "DefaultTechnique";
             var pOldRT = device.GetRenderTarget(0);
             var pSurf = g_pRenderTarget.GetSurfaceLevel(0);
-            if (activate_bloom)
+            if (distortion || activate_bloom)
                 device.SetRenderTarget(0, pSurf);
             var pOldDS = device.DepthStencilSurface;
-            if (activate_bloom)
+            if (distortion || activate_bloom)
                 device.DepthStencilSurface = g_pDepthStencil;
 
             device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Color.Black, 1.0f, 0);
-
             device.BeginScene();
+
+
             
 
             //Iniciar dibujado de todos los Sprites de la escena (en este caso es solo uno)
             parent.drawer2D.BeginDrawSprite();
 
-            //Dibujar sprite (si hubiese mas, deberian ir todos aquí)
-            parent.drawer2D.DrawSprite(superPowerSprite);
-            parent.drawer2D.DrawSprite(songProgressBarSprite);
-
             //Finalizar el dibujado de Sprites
             parent.drawer2D.EndDrawSprite();
-
-            // Especificaciones en pantalla: posición de la nave y de la cámara
-            if (developerModeGUI)
-            {
-                parent.DrawText.drawText("Ship Position: \n" + Ship.Position, 5, 20, Color.Yellow);
-                parent.DrawText.drawText("Medium Elapsed: \n" + gameTime.medium_elapsed, 145, 20, Color.Yellow);
-                parent.DrawText.drawText("Camera Position: \n" + parent.Camara.Position, 5, 100, Color.Yellow);
-                parent.DrawText.drawText("Elapsed: \n" + ElapsedTime, 145, 60, Color.Yellow);
-                parent.DrawText.drawText("PUNTAJE ACTUAL: " + stat.totalPoints +
-                "\nMULTIPLICADOR ACTUAL: " + stat.totalMultiply +
-                "\nMULTIPLICADOR PARCIAL: " + stat.partialMultiply +
-                "\nSUPERPODER: " + ((!superPowerStatus) ? "TRUÉ" : "FALSE" + ElapsedTime), 5, 180, Color.Yellow);
-                parent.DrawText.drawText("SumElapsed: \n" + gameTime.sum_elapsed, 145, 100, Color.White);
-            }
-
+            
             StringFormat stringFormat = new StringFormat();
             stringFormat.Alignment = StringAlignment.Center;      // Horizontal Alignment
             stringFormat.LineAlignment = StringAlignment.Center;  // Vertical Alignment
@@ -745,17 +717,7 @@ namespace TGC.Group.StateMachine
             mTierra.Render();
             mSol.Render();
             mMarte.Render();
-
-            totalPoints.render();
-            multiplyPointsGUI.render();
-            if (helpGUI)
-            {
-                tButtons.render();
-            }
-            if (penalty)
-            {
-                subPoints.render();
-            }
+            
             for (int a = 0; a < power_boxes.Count; a++)
             {
                 TGCBox ShortPowerBox = power_boxes[a];
@@ -779,15 +741,33 @@ namespace TGC.Group.StateMachine
             }
 
             device.EndScene();
-
+            
             pSurf.Dispose();
+            if (distortion)
+            {
+                device.DepthStencilSurface = pOldDS;
+                device.SetRenderTarget(0, pOldRT);
+                device.BeginScene();
+
+                bloomEffect.Technique = "Pincusion";
+                device.VertexFormat = CustomVertex.PositionTextured.Format;
+                device.SetStreamSource(0, g_pVBV3D, 0);
+                bloomEffect.SetValue("g_RenderTarget", g_pRenderTarget);
+
+                device.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Color.Black, 1.0f, 0);
+                bloomEffect.Begin(FX.None);
+                bloomEffect.BeginPass(0);
+                device.DrawPrimitives(PrimitiveType.TriangleStrip, 0, 2);
+                bloomEffect.EndPass();
+                bloomEffect.End();
+                device.EndScene();
+            }
             if (activate_bloom)
             {
                 device.DepthStencilSurface = pOldDS;
                 device.SetRenderTarget(0, pOldRT);
-                
-                device.BeginScene();
 
+                device.BeginScene();
                 bloomEffect.Technique = "GaussianBlur";
                 device.VertexFormat = CustomVertex.PositionTextured.Format;
                 device.SetStreamSource(0, g_pVBV3D, 0);
@@ -800,15 +780,42 @@ namespace TGC.Group.StateMachine
                 bloomEffect.EndPass();
                 bloomEffect.End();
                 device.EndScene();
-
             }
 
-            //drawer2D.BeginDrawSprite();
-            //drawer2D.DrawSprite(sprite);
-            //drawer2D.EndDrawSprite();
+            parent.drawer2D.BeginDrawSprite();
+            parent.drawer2D.DrawSprite(blacksprite);
+            parent.drawer2D.EndDrawSprite();
 
+            totalPoints.render();
+            multiplyPointsGUI.render();
+            
+
+            // Especificaciones en pantalla: posición de la nave y de la cámara
+            if (developerModeGUI)
+            {
+                parent.DrawText.drawText("Ship Position: \n" + Ship.Position, 5, 20, Color.Yellow);
+                parent.DrawText.drawText("Medium Elapsed: \n" + gameTime.medium_elapsed, 145, 20, Color.Yellow);
+                parent.DrawText.drawText("Camera Position: \n" + parent.Camara.Position, 5, 100, Color.Yellow);
+                parent.DrawText.drawText("Elapsed: \n" + ElapsedTime, 145, 60, Color.Yellow);
+                parent.DrawText.drawText("PUNTAJE ACTUAL: " + stat.totalPoints +
+                "\nMULTIPLICADOR ACTUAL: " + stat.totalMultiply +
+                "\nMULTIPLICADOR PARCIAL: " + stat.partialMultiply +
+                "\nSUPERPODER: " + ((!superPowerStatus) ? "TRUÉ" : "FALSE" + ElapsedTime), 5, 180, Color.Yellow);
+                parent.DrawText.drawText("SumElapsed: \n" + gameTime.sum_elapsed, 145, 100, Color.White);
+            }
+            if (helpGUI)
+            {
+                tButtons.render();
+            }
+            if (penalty)
+            {
+                subPoints.render();
+            }
+
+            
 
             device.Present();
+
         }
 
         private void curve_hitted()
@@ -886,6 +893,7 @@ namespace TGC.Group.StateMachine
             blooms.Add(bloom);
 
             tracks_is_curve.Add(isCurve);
+            
 
             path.Move(lastVertex);
             paths.Add(path);
@@ -900,7 +908,7 @@ namespace TGC.Group.StateMachine
 
             TGCVector3 position = getPositionAtMiliseconds(miliseconds);
 
-            var sizePowerBox = new TGCVector3(8, 1, 8);
+            var sizePowerBox = new TGCVector3(8, 1, 10);
             PowerBox powerbox = new PowerBox(miliseconds);
             powerbox.setPositionSize(TGCVector3.Empty, sizePowerBox);
             powerbox.Color = Color.Pink;

@@ -12,7 +12,7 @@ float4x4 matWorldView; //Matriz World * View
 float4x4 matWorldViewProj; //Matriz World * View * Projection
 float4x4 matInverseTransposeWorld; //Matriz Transpose(Invert(World))
 
-float4 ambientColor = float4(1, 0.2, 0.2, 1);
+float4 ambientColor = float4(1, 0.15, 0.15, 1);
 
 //Textura para DiffuseMap
 texture texDiffuseMap;
@@ -436,4 +436,38 @@ technique DepthOfField
         VertexShader = compile vs_3_0 VSCopy();
         PixelShader = compile ps_3_0 PSBlur();
     }
+}
+
+float fish_kU = 0.25f;
+float fish_kV = 0.25f;
+
+bool grid = false;
+
+float4 PSPincusion(in float2 Tex : TEXCOORD0, in float2 vpos : VPOS) : COLOR0
+{
+    float2 center = float2(0.5, 0.5);
+    float dist = distance(center, Tex);
+    Tex -= center;
+    float percent = 1.0 - ((0.5 - dist) / 0.5) * fish_kU;
+    Tex *= percent;
+    Tex += center;
+    float4 rta;
+    int pos_x = round(Tex.x * screen_dx);
+    int pos_y = round(Tex.y * screen_dy);
+    if (grid && (pos_x % 50 == 1 || pos_y % 50 == 1))
+        rta = float4(1, 1, 1, 1);
+    else
+        rta = tex2D(RenderTarget, Tex);
+    return rta;
+
+}
+
+technique Pincusion
+{
+    pass Pass_0
+    {
+        VertexShader = compile vs_3_0 VSCopy();
+        PixelShader = compile ps_3_0 PSPincusion();
+    }
+
 }

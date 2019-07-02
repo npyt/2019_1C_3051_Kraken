@@ -150,6 +150,9 @@ namespace TGC.Group.StateMachine
 
             penalty = false;
 
+            System.Drawing.Text.PrivateFontCollection bignoodle = new System.Drawing.Text.PrivateFontCollection();
+            bignoodle.AddFontFile(parent.MediaDir + "Fonts\\big_noodle_titling.ttf");
+
             blacksprite = new CustomSprite();
             blacksprite.Bitmap = new CustomBitmap(parent.MediaDir + "\\GUI\\black.png", D3DDevice.Instance.Device);
             float sx = Screen.PrimaryScreen.Bounds.Size.Width / 1920;
@@ -164,21 +167,21 @@ namespace TGC.Group.StateMachine
             tButtons.Color = Color.White;
             tButtons.Size = new Size(200, 240);
             tButtons.Position = new Point(Screen.PrimaryScreen.Bounds.Right - tButtons.Size.Width - 30, Screen.PrimaryScreen.Bounds.Bottom - tButtons.Size.Height);
-            tButtons.changeFont(new Font("BigNoodleTitling", 16, FontStyle.Italic));
+            tButtons.changeFont(new Font(bignoodle.Families[0], 16, FontStyle.Italic));
 
             totalPoints = new TgcText2D();
             totalPoints.Align = TgcText2D.TextAlign.LEFT;
             totalPoints.Size = new Size(200, 300);
             totalPoints.Position = new Point(40, Screen.PrimaryScreen.Bounds.Bottom - totalPoints.Size.Height - 20);
             totalPoints.Color = Color.White;
-            totalPoints.changeFont(new Font("BigNoodleTitling", 180, FontStyle.Regular));
+            totalPoints.changeFont(new Font(bignoodle.Families[0], 180, FontStyle.Regular));
 
             multiplyPointsGUI = new TgcText2D();
             multiplyPointsGUI.Align = TgcText2D.TextAlign.LEFT;
             multiplyPointsGUI.Size = new Size(150, 150);
             multiplyPointsGUI.Position = new Point(50, Screen.PrimaryScreen.Bounds.Bottom - multiplyPointsGUI.Size.Height - 220);
             multiplyPointsGUI.Color = Color.White;
-            multiplyPointsGUI.changeFont(new Font("BigNoodleTitling", 59, FontStyle.Italic));
+            multiplyPointsGUI.changeFont(new Font(bignoodle.Families[0], 59, FontStyle.Italic));
 
             subPoints = new TgcText2D();
             subPoints.Text = "-10";
@@ -186,7 +189,7 @@ namespace TGC.Group.StateMachine
             subPoints.Size = new Size(150, 150);
             subPoints.Position = new Point(180, Screen.PrimaryScreen.Bounds.Bottom - multiplyPointsGUI.Size.Height - 220);
             subPoints.Color = Color.Red;
-            subPoints.changeFont(new Font("BigNoodleTitling", 59, FontStyle.Italic));
+            subPoints.changeFont(new Font(bignoodle.Families[0], 59, FontStyle.Italic));
 
             // Listas de tracks, paths y powerBoxes
             tracks = new List<TgcMesh>();

@@ -152,10 +152,10 @@ namespace TGC.Group.StateMachine
 
             blacksprite = new CustomSprite();
             blacksprite.Bitmap = new CustomBitmap(parent.MediaDir + "\\GUI\\black.png", D3DDevice.Instance.Device);
-            float sx = Screen.PrimaryScreen.Bounds.Size.Width / 1080;
-            float sy = Screen.PrimaryScreen.Bounds.Size.Width / 1920;
+            float sx = Screen.PrimaryScreen.Bounds.Size.Width / 1920;
+            float sy = Screen.PrimaryScreen.Bounds.Size.Height / 1080;
             blacksprite.Position = new TGCVector2(0, 0);
-            blacksprite.Scaling = new TGCVector2(0.75f, 0.4f);
+            blacksprite.Scaling = new TGCVector2(sx, sy);
 
 
 
